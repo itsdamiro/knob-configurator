@@ -10,8 +10,8 @@ Turn the top knob and Photoshop changes the brush size, Figma zooms, Premiere st
 
 - **Knob Agent**: a small menu-bar app. It catches the knob's keys and sends the shortcut that the app in front needs.
 - **The configurator page**, served by Knob Agent at <http://127.0.0.1:8850>:
-  - **Apps**: choose what each part of the knob does in each app. Click a part of the drawing, or switch on *Configuration mode* and turn the real knob to select it.
-  - **Device setup**: saves the knob's keys to the device itself over USB (Chrome or Edge).
+  - **Apps**: choose what each part of the knob does in each app. Click a part of the drawing, or switch on *Configuration mode* and turn the real knob to select it. Under *Everything else*, the **green layer** and **blue layer** tabs set actions stored on the knob itself, for an iPad or any other device.
+  - **Device setup**: saves the red layer's keys to the knob over USB (Chrome or Edge), and sets the slots.
 - **Ready-made profiles** for 20 apps (listed below), plus an *Everything else* profile for every other app. Add any other app in two clicks.
 - **Battery level** of the knob in the menu and on the page, with a warning when it runs low.
 
@@ -60,8 +60,8 @@ The knob has to be told to send the keys in the table above. This is saved on th
 1. Connect the knob with a USB-C cable.
 2. Open <http://127.0.0.1:8850> in **Google Chrome** or **Microsoft Edge**. Safari, and apps' built-in browsers, can't talk to USB devices.
 3. Go to **Device setup**, click **Connect device**, and pick "USB Composite Device".
-4. Click **Save keys to the knob**.
-5. Check it: switch on **Configuration mode** and turn the knob. The matching part of the drawing lights up.
+4. Click **Save keys to the knob**. They go on the knob's red layer (see [Layers](#layers)).
+5. Check it: press the button on the knob's side until its light is red, switch on **Configuration mode** and turn the knob. The matching part of the drawing lights up.
 
 ![The Device setup tab: connect the knob, save its keys, and the slot each part uses](docs/screenshot-device-setup.png)
 
@@ -91,9 +91,41 @@ While the knob is connected over Bluetooth, Knob Agent shows its battery level i
 
 The maker rates the battery at about a week of use with the lights off, and 3–4 hours with them on.
 
+### Layers
+
+The knob holds three sets of keys, called layers. The button on its side switches between them, and the light shows which one is on:
+
+| Light | Name on the page | What it's for |
+|---|---|---|
+| Red | Red layer | Knob Agent's keys: a different action in every app, on a Mac running Knob Agent. |
+| Green | Green layer | Actions you choose, stored on the knob: the same in every app, on any device. |
+| Blue | Blue layer | Another set, stored on the knob. |
+
+The green layer and blue layer send ordinary shortcuts straight to the app in front, so they work on any device the knob is connected to, such as an iPad, where Knob Agent can't run. Set them in **Apps → Everything else**, on the **Green layer** and **Blue layer** tabs above the drawing:
+
+1. Click a part of the drawing, or its row in the list.
+2. Choose its **Action**. Common actions are grouped and named, with their keys shown beside them: *Edit* (undo, redo, copy, paste…), *Drawing* (brush smaller / bigger, brush, eraser, swap colours), *View* (zoom in / out, fit to screen, actual size), *Move around* (arrows, page up / down, next field, return), *Apps* (save, find, new, switch to the last app) and *Media* (volume up / down, mute, play / pause, next / previous track). **Custom shortcut** records or picks any other key combination. **Same as red layer** sends the red layer's key, so on a Mac Knob Agent does that part's per-app action whatever the colour (on an iPad it does nothing). **Keep the knob's own key** leaves that part unchanged.
+3. Or fill all seven parts at once with **Fill all parts with**: *iPad: drawing and design* (undo / redo, brush size, zoom, fit to screen), *Browsing: arrows and zoom*, *Media: volume and tracks*, *Same as red layer*, or *Keep the knob's own keys*.
+4. Connect the knob with the USB-C cable and click **Save green layer to the knob** (or blue), in Chrome or Edge. Unlike the red layer, these changes don't save by themselves.
+
+![Everything else on the green layer: the colour tabs, named actions in the list, and the action editor with presets and Save green layer to the knob](docs/screenshot-layers.png)
+
+- The green and blue layers hold key combinations and media keys. Scrolling can't be stored on the knob yet; a custom shortcut, such as the arrow keys, can stand in for it.
+- The knob can't report what it holds, so the page shows what that browser last saved. Until you save a layer, it keeps the maker's keys, such as arrow keys and digits.
+- The red layer works only where Knob Agent runs: on an iPad, its keys do nothing.
+
+### Moving between a Mac and an iPad
+
+The knob talks to one device at a time, over one connection: the USB-C cable, Bluetooth, or the 2.4 GHz receiver. One setup that switches without pairing again: the Mac uses the receiver and the iPad uses Bluetooth, and the Mac doesn't keep a Bluetooth pairing with the knob.
+
+- **To the iPad:** unplug the receiver from the Mac, turn Bluetooth on in the iPad's Control Center, and turn the knob once to wake it.
+- **To the Mac:** turn Bluetooth off in the iPad's Control Center (the iPad keeps the pairing), then plug the receiver in.
+
+While the receiver is plugged in, the knob stays on it and the iPad can't connect.
+
 ### Lights
 
-Knob Configurator can't change the knob's lights yet. The light commands known from related pads (the 0x8840/0x8842 and 0x8890 models) were tested on this model and have no effect, so its light command is still unknown. Working it out needs a USB capture of the maker's Windows app changing the lights. If you can make one, please open an issue.
+The light shows the active layer (see above). Knob Configurator can't change its colour or effects. The light commands known from related pads (the 0x8840/0x8842 and 0x8890 models) were tested on this model and have no effect, so its light command is still unknown. Working it out needs a USB capture of the maker's Windows app changing the lights. If you can make one, please open an issue.
 
 ## Ready-made profiles
 
@@ -134,6 +166,8 @@ Apps are recognised by their bundle ID, matched from the start, so `com.adobe.Pr
 | The page shows "Knob Agent isn't running" | Open Knob Agent from Applications. |
 | The menu says port 8850 is busy | Something else is using that address. Quit it; Knob Agent keeps retrying and starts the page on its own. |
 | Connect device does nothing | Use Google Chrome or Microsoft Edge, not Safari or an app's built-in browser. |
+| The knob types digits, moves the selection, or Knob Agent ignores it | The knob is on another layer. Press the button on its side until the light is red. |
+| Another device can't find the knob over Bluetooth | The knob is connected elsewhere: it talks to one device at a time. Unplug the 2.4 GHz receiver, or turn Bluetooth off on the other device (see [Moving between a Mac and an iPad](#moving-between-a-mac-and-an-ipad)). |
 | Turning the knob changes the screen brightness | The knob still has the keys from version 1.0, which used F14 and F15; macOS treats those as brightness keys. Click **Save keys to the knob** on the Device setup tab. |
 | The battery shows "—" | The level is only reported over Bluetooth. Over the USB cable, or with the 2.4 GHz receiver, it isn't available. |
 | No low-battery notification | Allow notifications for Knob Agent in System Settings → Notifications. |
@@ -164,7 +198,7 @@ Your settings are stored in `~/Library/Application Support/Knob Agent/config.jso
 - **Sending the action.** It looks up the app in front, finds its profile (or *Everything else*), and posts the shortcut, scroll or media key as new events.
 - **Battery.** It reads the level macOS gets over Bluetooth, from `system_profiler SPBluetoothDataType`. Over Bluetooth the knob presents itself as `MINI_KEYBOARD`, with vendor ID 0x05AC and product ID 0x022C.
 - **The page.** Knob Agent serves the page and a small JSON API on `127.0.0.1:8850`. The page saves changes there and gets live events, knob turns and app switches, over a server-sent event stream. That's how Configuration mode lights up the drawing.
-- **The device.** The page writes key settings to the knob over WebHID, through the knob's vendor-defined HID interface (usage page `0xFF00`, report ID 3, 64-byte reports). The message format comes from the open-source [ch57x-keyboard-tool](https://github.com/kriomant/ch57x-keyboard-tool), whose `k8850_4x4` driver covers this USB ID.
+- **The device.** The page writes key settings to the knob over WebHID, through the knob's vendor-defined HID interface (usage page `0xFF00`, report ID 3, 64-byte reports). Each message names a slot, a layer (1 red, 2 green, 3 blue) and a type (1 key combination, 2 media key); slot numbers are the same on every layer. The message format comes from the open-source [ch57x-keyboard-tool](https://github.com/kriomant/ch57x-keyboard-tool), whose `k8850_4x4` driver covers this USB ID.
 
 ## Privacy and security
 

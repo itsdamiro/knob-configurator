@@ -16,6 +16,7 @@
       --accent-soft: rgba(90,145,255,.22); --metal-a: #d9dadc; --metal-b: #9c9ea3; --metal-c: #6f7176; }
   }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }   /* classes like .seg set display, which would otherwise override hidden */
   body { margin: 0; font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; background: var(--bg); color: var(--ink); }
   main { max-width: 1240px; margin: 0 auto; padding: 24px 20px 64px; }
   header { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
@@ -86,6 +87,7 @@
   .seg { display: flex; flex-wrap: wrap; gap: 4px; }
   .seg button { padding: 4px 10px; font-size: 13px; }
   .seg button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .seg button .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
   .shortcut { font: 600 20px -apple-system, sans-serif; padding: 10px 12px; border: 1px dashed var(--line); border-radius: 10px; text-align: center; min-height: 48px; }
   .shortcut.recording { border-color: var(--accent); color: var(--accent); }
   .mods label { margin-right: 10px; white-space: nowrap; }
@@ -140,6 +142,7 @@
           <span class="spacer"></span>
           <span class="save muted" id="saveState"></span>
         </div>
+        <div class="seg" id="layerTabs" style="align-self:flex-start; margin:2px 0 8px"></div>
         <p class="small muted" style="margin:0 0 6px; align-self:flex-start" id="stageHint">Click a part of the knob, or switch on Configuration mode and turn the real knob.</p>
         <svg id="knob" viewBox="0 0 400 400" role="img" aria-label="The two knobs seen from above"></svg>
         <div class="legend" id="legend"></div>
@@ -153,21 +156,22 @@
   <section id="tab-device" hidden>
     <div class="stack">
       <div class="card">
-        <h2>Set up the knob for app switching</h2>
-        <p class="muted">This saves a key for each part on the knob (F13, F16–F20, and ⌃⌥⇧⌘F13), which Knob Agent turns into each app's shortcut. You only need to do it once. Plug the knob in with the USB-C cable and use Google Chrome or Microsoft Edge; Safari and apps' built-in browsers can't talk to USB devices.</p>
+        <h2>Red layer: set up the knob for app switching</h2>
+        <p class="muted">This saves a key for each part on the knob's red layer (F13, F16–F20, and ⌃⌥⇧⌘F13), which Knob Agent turns into each app's shortcut. You only need to do it once. Plug the knob in with the USB-C cable and use Google Chrome or Microsoft Edge; Safari and apps' built-in browsers can't talk to USB devices.</p>
         <div class="row">
           <button id="connect" class="primary">Connect device</button>
           <span id="devStatus" class="pill bad">Not connected</span>
           <button id="writeF" disabled>Save keys to the knob</button>
         </div>
         <p class="small warn" id="hidSupport"></p>
+        <p class="small muted">The green layer and blue layer are set in <b>Apps → Everything else</b>.</p>
       </div>
 
       <div class="card">
         <h2>Slots</h2>
         <p class="muted small">Which slot in the knob's memory each part uses. If a part lights up the wrong area in Configuration mode, or nothing at all, use “Find slots again” below and set the slots here.</p>
         <table>
-          <thead><tr><th>Part</th><th>Slot</th><th>Sends</th></tr></thead>
+          <thead><tr><th>Part</th><th>Slot (same on every layer)</th><th>Sends on red</th></tr></thead>
           <tbody id="slotRows"></tbody>
         </table>
         <div class="row" style="margin-top:8px"><button class="link small" id="defaultSlots">Use default slots</button></div>
@@ -253,6 +257,7 @@ function describe(a) {
 // State from Knob Agent
 let st = null, cfg = null, agentOK = false;
 let selProfile = "default", selControl = "topRight", recording = false;
+let appLayer = 1;   // 1 red (Knob Agent), 2 green, 3 blue: the layer shown under Everything else
 
 async function api(path, method = "GET", body) {
   const opt = { method, headers: {} };
@@ -332,9 +337,13 @@ function scheduleSave() {
 // ---------------------------------------------------------------------------
 // Rendering
 function renderAll() {
-  if (!cfg) { $("appList").innerHTML = `<p class="muted small">Waiting for Knob Agent.</p>`; $("editor").innerHTML = ""; renderKnob(); return; }
+  if (!cfg) {
+    $("appList").innerHTML = `<p class="muted small">Waiting for Knob Agent.</p>`;
+    renderLayerTabs(); renderKnob(); renderEditor(); return;
+  }
   if (!getProfile(selProfile)) selProfile = "default";
-  renderApps(); renderKnob(); renderEditor(); renderAddApp();
+  if (!isDefault(selProfile)) appLayer = 1;
+  renderApps(); renderLayerTabs(); renderKnob(); renderEditor(); renderAddApp();
 }
 
 function renderApps() {
@@ -345,7 +354,7 @@ function renderApps() {
   const other = cfg.profiles.filter(p => !installedMatch(p));
   $("appList").innerHTML = item(cfg.defaultProfile) + installed.map(item).join("") +
     (other.length ? `<details${other.some(p => p.id === selProfile) ? " open" : ""}><summary>Not installed (${other.length})</summary>${other.map(item).join("")}</details>` : "");
-  $("appList").querySelectorAll(".app").forEach(el => el.onclick = () => { selProfile = el.dataset.p; renderAll(); });
+  $("appList").querySelectorAll(".app").forEach(el => el.onclick = () => { selProfile = el.dataset.p; layerRec = null; renderAll(); });
 }
 
 function renderAddApp() {
@@ -432,6 +441,7 @@ $("knob").querySelectorAll(".zone").forEach(z => z.addEventListener("click", () 
 
 function renderKnob() {
   $("knob").querySelectorAll(".zone").forEach(z => z.classList.toggle("sel", z.dataset.c === selControl));
+  if (appLayer > 1) return renderLayerLegend();
   const p = cfg && getProfile(selProfile);
   $("stageTitle").textContent = p ? p.name : "Knob";
   $("legend").innerHTML = CONTROLS.map(c => {
@@ -449,13 +459,15 @@ function renderKnob() {
   $("legend").querySelectorAll(".item").forEach(el => el.onclick = () => selectControl(el.dataset.c));
 }
 
-function selectControl(c) { selControl = c; recording = false; renderKnob(); if (cfg) renderEditor(); }
+function selectControl(c) { selControl = c; recording = false; layerRec = null; renderKnob(); renderEditor(); }
 function flash(c) {
   for (const el of document.querySelectorAll(`[data-c="${c}"]`)) { el.classList.remove("flash"); void el.getBoundingClientRect(); el.classList.add("flash"); }
 }
 
 // --- Editor ----------------------------------------------------------------
 function renderEditor() {
+  if (appLayer > 1) return renderLayerEditor();
+  if (!cfg) { $("editor").innerHTML = ""; return; }
   const p = getProfile(selProfile);
   if (!p) return;
   const c = CONTROL[selControl];
@@ -547,9 +559,10 @@ window.addEventListener("keydown", e => {
     if (c) { e.preventDefault(); if ($("configMode").checked) selectControl(c.id); flash(c.id); }
     return;
   }
-  if (!recording) return;
+  if (!recording && !layerRec) return;
   if (["Shift", "Control", "Alt", "Meta"].includes(e.key)) return;
   e.preventDefault(); e.stopPropagation();
+  if (layerRec) return recordLayerKey(e);
   const key = keyFromEvent(e);
   const own = getProfile(selProfile).actions[selControl];
   if (!key || !own) return;
@@ -585,12 +598,15 @@ async function setListen(on) {
   if (!agentOK) return;
   try { await api("/api/listen", "POST", { on }); } catch (e) { /* the pill shows a lost connection */ }
 }
-function onConfigMode() {
-  const on = $("configMode").checked;
-  setListen(on);
-  $("stageHint").textContent = on
+function stageHint() {
+  if (appLayer > 1) return `Click a part of the knob to choose what it does on the ${LAYER_NAME[appLayer]}. Configuration mode finds parts on the red layer only.`;
+  return $("configMode").checked
     ? "Configuration mode is on: turn or press the real knob to select that part. The knob's actions are paused until you switch this off."
     : "Click a part of the knob, or switch on Configuration mode and turn the real knob.";
+}
+function onConfigMode() {
+  setListen($("configMode").checked);
+  $("stageHint").textContent = stageHint();
 }
 $("configMode").onchange = onConfigMode;
 document.addEventListener("visibilitychange", () => {
@@ -641,11 +657,16 @@ $("defaultSlots").onclick = () => {
 };
 
 // Keyboard binding (k8850_4x4 format): 03 fd <slot> <layer> 01 00 <count> then 00 00 <code> per key,
-// modifiers first (f1 Control, f2 Shift, f3 Option, f4 Command).
+// modifiers first (f1 Control, f2 Shift, f3 Option, f4 Command). Layer 1 is red, 2 green, 3 blue
+// (the colour of the light, cycled by the button on the knob's side); slot numbers are the same on every layer.
 const MOD_CODE = { ctrl: 0xf1, shift: 0xf2, alt: 0xf3, cmd: 0xf4 };
-function keyBindMessage(slotId, hidCode, mods = []) {
+function keyBindMessage(slotId, hidCode, mods = [], layer = 1) {
   const seq = [...["ctrl", "shift", "alt", "cmd"].filter(m => mods.includes(m)).map(m => MOD_CODE[m]), hidCode];
-  return [REPORT_ID, 0xfd, slotId, 1, 1, 0, seq.length, ...seq.flatMap(code => [0, 0, code])];
+  return [REPORT_ID, 0xfd, slotId, layer, 1, 0, seq.length, ...seq.flatMap(code => [0, 0, code])];
+}
+// Media key (consumer usage code): type 2, then the code's low and high bytes as two entries (ch57x-keyboard-tool's Macro::Media).
+function mediaBindMessage(slotId, code, layer) {
+  return [REPORT_ID, 0xfd, slotId, layer, 2, 0, 2, 0, 0, code & 0xff, 0, 0, code >> 8];
 }
 const FINISH = [REPORT_ID, 0xfd, 0xfe, 0xff];
 async function send(msg) {
@@ -654,12 +675,18 @@ async function send(msg) {
   await device.sendReport(msg[0], data);
   log("→ " + hex(msg));
 }
-async function bindKey(slotId, hidCode, mods) { await send(keyBindMessage(slotId, hidCode, mods)); await send(FINISH); }
+async function bindKey(slotId, hidCode, mods, layer = 1) { await send(keyBindMessage(slotId, hidCode, mods, layer)); await send(FINISH); }
+// The first slot two parts share, or undefined.
+function sharedSlot(parts) {
+  const ids = parts.map(c => slots[c.id]);
+  return ids.find((id, i) => ids.indexOf(id) !== i);
+}
 
 function setDev(on) {
   $("devStatus").textContent = on ? "Connected" : "Not connected";
   $("devStatus").className = "pill " + (on ? "ok" : "bad");
   $("writeF").disabled = $("discover").disabled = !on;
+  if (appLayer > 1) renderLayerEditor();
 }
 async function openDevice(d) { if (!d.opened) await d.open(); device = d; setDev(true); log("Connected to the knob."); }
 
@@ -675,19 +702,19 @@ if (!("hid" in navigator)) {
   navigator.hid.addEventListener("disconnect", e => { if (e.device === device) { device = null; setDev(false); log("Knob unplugged."); } });
 }
 
-$("connect").onclick = async () => {
+async function connectDevice() {
   log("Waiting for the browser's device picker…");
   try {
     const list = await navigator.hid.requestDevice({ filters: [{ vendorId: VID, productId: PID, usagePage: 0xff00 }] });
     if (!list.length) return log("No device picked.");
     await openDevice(list.find(x => x.collections.some(c => c.usagePage === 0xff00)) || list[0]);
   } catch (e) { log("Connect failed: " + e.message); }
-};
+}
+$("connect").onclick = connectDevice;
 
 $("writeF").onclick = async () => {
   const todo = CONTROLS.filter(c => slots[c.id]);
-  const ids = todo.map(c => slots[c.id]);
-  const dup = ids.find((id, i) => ids.indexOf(id) !== i);
+  const dup = sharedSlot(todo);
   if (dup) return log(`Two parts use ${slotLabel(dup)}. Give each its own slot first.`);
   $("writeF").disabled = true;
   try {
@@ -712,6 +739,218 @@ $("testbox").addEventListener("input", () => {
   for (const ch of $("testbox").value.toLowerCase()) { const id = ch.charCodeAt(0) - 96; if (id >= 1 && id <= 25 && !seen.includes(id)) seen.push(id); }
   $("found").innerHTML = seen.map(id => `<li><b>${letterFor(id)}</b> = ${slotLabel(id)}</li>`).join("");
 });
+
+// --- Green layer and blue layer: actions stored on the knob ---------------------
+// The side button cycles the red, green and blue layers. The red layer holds Knob Agent's keys; the green
+// and blue layers hold ordinary shortcuts the knob sends itself, the same in every app and on any device.
+// They're edited under Everything else and saved to the knob over USB.
+
+// USB HID usage codes for the key names the editor offers.
+const HID = {};
+"abcdefghijklmnopqrstuvwxyz".split("").forEach((k, i) => HID[k] = 0x04 + i);
+"1234567890".split("").forEach((k, i) => HID[k] = 0x1e + i);
+for (let i = 1; i <= 12; i++) HID["f" + i] = 0x39 + i;
+Object.assign(HID, { return: 0x28, escape: 0x29, delete: 0x2a, tab: 0x2b, space: 0x2c, "-": 0x2d, "=": 0x2e, "[": 0x2f, "]": 0x30,
+  "\\": 0x31, ";": 0x33, "'": 0x34, "`": 0x35, ",": 0x36, ".": 0x37, "/": 0x38, home: 0x4a, pageup: 0x4b, forwarddelete: 0x4c,
+  end: 0x4d, pagedown: 0x4e, right: 0x4f, left: 0x50, down: 0x51, up: 0x52 });
+
+const LAYER_NAME = { 1: "red layer", 2: "green layer", 3: "blue layer" };
+const LAYER_COLOUR = { 1: "#d93025", 2: "#1e9e4a", 3: "#2f6fde" };
+const cap = t => t[0].toUpperCase() + t.slice(1);
+const normMods = mods => MODS.map(([m]) => m).filter(m => mods.includes(m));
+
+// Common actions, grouped. Each is a key and modifiers; the standard shortcut in most apps on a Mac or an iPad.
+const LAYER_ACTIONS = [
+  ["Edit", [
+    ["undo", "Undo", "z", ["cmd"]], ["redo", "Redo", "z", ["shift", "cmd"]],
+    ["cut", "Cut", "x", ["cmd"]], ["copy", "Copy", "c", ["cmd"]], ["paste", "Paste", "v", ["cmd"]],
+    ["selectAll", "Select all", "a", ["cmd"]], ["delete", "Delete", "delete", []], ["escape", "Escape / cancel", "escape", []]]],
+  ["Drawing", [
+    ["brushSmaller", "Brush smaller", "[", []], ["brushBigger", "Brush bigger", "]", []],
+    ["brush", "Brush tool", "b", []], ["eraser", "Eraser tool", "e", []], ["swapColours", "Swap colours", "x", []]]],
+  ["View", [
+    ["zoomIn", "Zoom in", "=", ["cmd"]], ["zoomOut", "Zoom out", "-", ["cmd"]],
+    ["fit", "Fit to screen", "0", ["cmd"]], ["actualSize", "Actual size", "1", ["cmd"]]]],
+  ["Move around", [
+    ["left", "Left / previous", "left", []], ["right", "Right / next", "right", []], ["up", "Up", "up", []], ["down", "Down", "down", []],
+    ["pageUp", "Page up", "pageup", []], ["pageDown", "Page down", "pagedown", []],
+    ["nextField", "Next field", "tab", []], ["prevField", "Previous field", "tab", ["shift"]], ["confirm", "Return / confirm", "return", []]]],
+  ["Apps", [
+    ["save", "Save", "s", ["cmd"]], ["find", "Find", "f", ["cmd"]], ["newItem", "New", "n", ["cmd"]],
+    ["lastApp", "Switch to the last app", "tab", ["cmd"]]]],
+];
+// Media keys, stored on the knob as consumer codes (tested: volume up on the blue layer, 2026-11-17).
+const LAYER_MEDIA = [["volumeUp", "Volume up", 0xe9], ["volumeDown", "Volume down", 0xea], ["mute", "Mute", 0xe2],
+  ["playPause", "Play / pause", 0xcd], ["nextTrack", "Next track", 0xb5], ["prevTrack", "Previous track", 0xb6]];
+const MEDIA_BY_ID = Object.fromEntries(LAYER_MEDIA.map(([id, name, code]) => [id, { name, code }]));
+const mediaIdFor = code => (LAYER_MEDIA.find(m => m[2] === code) || [])[0];
+const ACTION = {};
+for (const [, list] of LAYER_ACTIONS) for (const [id, name, key, mods] of list) ACTION[id] = { name, key, mods: normMods(mods) };
+const sameKeys = (a, b) => a.key === b.key && normMods(a.mods).join() === normMods(b.mods).join();
+const actionIdFor = a => Object.keys(ACTION).find(id => sameKeys(ACTION[id], a));
+
+// Presets fill all seven parts at once.
+const LAYER_PRESETS = [
+  ["ipadDrawing", "iPad: drawing and design", { bottomLeft: "undo", bottomRight: "redo", topLeft: "brushSmaller", topRight: "brushBigger",
+    topPress: "fit", pressLeft: "zoomOut", pressRight: "zoomIn" }],
+  ["browsing", "Browsing: arrows and zoom", { bottomLeft: "left", bottomRight: "right", topLeft: "up", topRight: "down",
+    topPress: "fit", pressLeft: "zoomOut", pressRight: "zoomIn" }],
+  ["media", "Media: volume and tracks", { bottomLeft: "volumeDown", bottomRight: "volumeUp", topPress: "playPause",
+    pressLeft: "prevTrack", pressRight: "nextTrack" }],
+  ["red", "Same as red layer (Knob Agent's actions on a Mac)", "red"],
+  ["keep", "Keep the knob's own keys", "keep"],
+];
+function presetSet(preset) {
+  if (preset === "red") return Object.fromEntries(CONTROLS.map(c => [c.id, { red: true }]));
+  if (preset === "keep") return {};
+  return Object.fromEntries(Object.entries(preset).map(([part, id]) =>
+    [part, MEDIA_BY_ID[id] ? { media: MEDIA_BY_ID[id].code } : { key: ACTION[id].key, mods: [...ACTION[id].mods] }]));
+}
+
+// What each layer holds, as last saved or edited in this browser. Green starts as the iPad drawing preset.
+const LAYER_KEY = "knob-layers-v1";
+let layerData = JSON.parse(localStorage.getItem(LAYER_KEY) || "null");
+if (!layerData) layerData = { keys: { 2: presetSet(LAYER_PRESETS[0][2]), 3: {} }, saved: { 2: null, 3: null } };
+let layerRec = null;      // the part whose custom shortcut is being recorded
+let layerMsg = "";
+const layerSet = () => layerData.keys[appLayer];
+function storeLayers() { localStorage.setItem(LAYER_KEY, JSON.stringify(layerData)); }
+function layerChanged() { layerData.saved[appLayer] = null; storeLayers(); renderKnob(); renderLayerEditor(); }
+
+// How a part's action reads in the list: a name, and the keys it sends.
+function layerDescribe(c, a) {
+  if (!a) return { name: "Keep", keys: "", note: "The knob's own key" };
+  if (a.red) return { name: "Same as red layer", keys: c.fkey, note: "Knob Agent's action for the app in front" };
+  if (a.media) { const m = mediaIdFor(a.media); return { name: m ? MEDIA_BY_ID[m].name : "Media key", keys: "Media", note: "" }; }
+  const id = actionIdFor(a);
+  return { name: id ? ACTION[id].name : "Custom shortcut", keys: shortcutText(a), note: "" };
+}
+
+function renderLayerTabs() {
+  const show = isDefault(selProfile);
+  $("layerTabs").hidden = !show;
+  $("stageHint").textContent = stageHint();
+  if (!show) return;
+  $("layerTabs").innerHTML = [1, 2, 3].map(L => (L === appLayer
+    ? `<button data-l="${L}" class="on" style="background:${LAYER_COLOUR[L]}; border-color:${LAYER_COLOUR[L]}"><span class="dot" style="background:#fff"></span>${cap(LAYER_NAME[L])}</button>`
+    : `<button data-l="${L}"><span class="dot" style="background:${LAYER_COLOUR[L]}"></span>${cap(LAYER_NAME[L])}</button>`)).join("");
+  $("layerTabs").querySelectorAll("button").forEach(b => b.onclick = () => { appLayer = +b.dataset.l; layerRec = null; layerMsg = ""; $("saveState").textContent = ""; renderAll(); });
+}
+
+function renderLayerLegend() {
+  $("stageTitle").textContent = `Everything else · ${cap(LAYER_NAME[appLayer])}`;
+  const set = layerSet();
+  const saved = layerData.saved[appLayer];
+  $("saveState").textContent = saved ? "Saved to the knob" : "Not saved to the knob";
+  $("legend").innerHTML = CONTROLS.map(c => {
+    const d = layerDescribe(c, set[c.id]);
+    return `<div class="item${c.id === selControl ? " sel" : ""}" data-c="${c.id}"><span class="key">${esc(d.keys || "—")}</span><span>${c.name}</span>
+      <span class="act${set[c.id] ? "" : " inherit"}">${esc(d.name)}</span></div>`;
+  }).join("");
+  $("legend").querySelectorAll(".item").forEach(el => el.onclick = () => selectControl(el.dataset.c));
+}
+
+function renderLayerEditor() {
+  if (appLayer < 2) return;
+  const c = CONTROL[selControl], set = layerSet(), a = set[c.id];
+  const L = LAYER_NAME[appLayer];
+  const id = a && a.key ? actionIdFor(a) : null;
+  const choice = !a ? "@keep" : a.red ? "@red" : a.media ? "media:" + mediaIdFor(a.media) : id ? "act:" + id : "@custom";
+  const d = layerDescribe(c, a);
+  const options = LAYER_ACTIONS.map(([group, list]) => `<optgroup label="${group}">${list.map(([aid, name, key, mods]) =>
+      `<option value="act:${aid}"${choice === "act:" + aid ? " selected" : ""}>${esc(name)}  ·  ${esc(shortcutText({ key, mods: normMods(mods) }))}</option>`).join("")}</optgroup>`).join("")
+    + `<optgroup label="Media">${LAYER_MEDIA.map(([mid, name]) => `<option value="media:${mid}"${choice === "media:" + mid ? " selected" : ""}>${esc(name)}</option>`).join("")}</optgroup>`
+    + `<optgroup label="Other">
+         <option value="@custom"${choice === "@custom" ? " selected" : ""}>Custom shortcut…</option>
+         <option value="@red"${choice === "@red" ? " selected" : ""}>Same as red layer</option>
+         <option value="@keep"${choice === "@keep" ? " selected" : ""}>Keep the knob's own key</option></optgroup>`;
+  let custom = "";
+  if (choice === "@custom") {
+    const rec = layerRec === c.id;
+    custom = `<div class="field"><label>Shortcut</label>
+        <div class="shortcut${rec ? " recording" : ""}">${rec ? "Press the keys now…" : esc(shortcutText(a))}</div>
+        <div class="row" style="margin-top:6px"><button id="lRec">${rec ? "Cancel" : "Record shortcut"}</button><span class="small muted">or pick below</span></div></div>
+      <div class="field mods">${MODS.map(([m, s, n]) => `<label><input type="checkbox" data-lmod="${m}"${a.mods.includes(m) ? " checked" : ""}> ${s} ${n}</label>`).join("")}</div>
+      <div class="field"><select id="lKey">${KEY_NAMES.map(k => `<option value="${esc(k)}"${k === a.key ? " selected" : ""}>${esc(keyLabel(k))}</option>`).join("")}</select></div>`;
+  }
+  const saved = layerData.saved[appLayer];
+  const connected = !!device;
+  $("editor").innerHTML = `<h2>Everything else · ${cap(L)}</h2>
+    <p class="small muted" style="margin:0">Stored on the knob, not in Knob Agent: the same in every app, on a Mac, a PC or an iPad. Press the button on the knob's side until its light is ${L.split(" ")[0]} to use it.</p>
+    <div class="field"><label>Fill all parts with</label>
+      <div class="row"><select id="lPreset" style="flex:1; min-width:0">${LAYER_PRESETS.map(([pid, name]) => `<option value="${pid}">${esc(name)}</option>`).join("")}</select><button id="lApply">Apply</button></div></div>
+    <hr style="border:none;border-top:1px solid var(--line);margin:14px 0">
+    <h2 style="margin-bottom:2px">${esc(c.name)}</h2>
+    <p class="small muted" style="margin:0 0 8px">${d.keys ? `Sends ${esc(d.keys)}` : "Not changed when you save"}${d.note ? ` · ${esc(d.note)}` : ""}</p>
+    <div class="field"><label>Action</label><select id="lAct" style="width:100%">${options}</select></div>
+    ${custom}
+    <hr style="border:none;border-top:1px solid var(--line);margin:14px 0">
+    <div class="row"><span class="pill ${connected ? "ok" : "bad"}">${connected ? "Knob connected" : "Knob not connected"}</span>
+      ${connected ? "" : `<button id="lConnect">Connect device</button>`}</div>
+    <div class="row" style="margin-top:8px"><button id="lSave" class="primary"${connected ? "" : " disabled"}>Save ${L} to the knob</button></div>
+    <p class="small ${saved ? "muted" : "warn"}" style="margin:6px 0 0">${saved ? `Saved to the knob ${esc(new Date(saved).toLocaleString())}.` : "Changes since the last save aren't on the knob yet."}</p>
+    ${layerMsg ? `<p class="small" style="margin:6px 0 0">${esc(layerMsg)}</p>` : ""}
+    <p class="small muted" style="margin:8px 0 0">Saving needs the USB-C cable and Google Chrome or Microsoft Edge. Scrolling can't be stored on the knob yet: use a custom shortcut, such as the arrow keys, instead. The knob can't report what it holds, so this shows what this browser last saved.</p>`;
+
+  $("lAct").onchange = e => {
+    const v = e.target.value;
+    if (v === "@keep") delete set[c.id];
+    else if (v === "@red") set[c.id] = { red: true };
+    else if (v === "@custom") { set[c.id] = { key: (a && a.key) || "a", mods: (a && a.mods) || [] }; layerRec = c.id; }
+    else if (v.startsWith("media:")) set[c.id] = { media: MEDIA_BY_ID[v.slice(6)].code };
+    else set[c.id] = { key: ACTION[v.slice(4)].key, mods: [...ACTION[v.slice(4)].mods] };
+    if (v !== "@custom") layerRec = null;
+    layerMsg = "";
+    layerChanged();
+  };
+  $("lApply").onclick = () => {
+    const [, name, preset] = LAYER_PRESETS.find(x => x[0] === $("lPreset").value);
+    layerData.keys[appLayer] = presetSet(preset); layerRec = null; layerMsg = `Filled with “${name}”. Save it to put it on the knob.`;
+    layerChanged();
+  };
+  if (choice === "@custom") {
+    $("lRec").onclick = () => { layerRec = layerRec === c.id ? null : c.id; renderLayerEditor(); };
+    $("editor").querySelectorAll("[data-lmod]").forEach(cb => cb.onchange = () => {
+      a.mods = MODS.map(([m]) => m).filter(m => $("editor").querySelector(`[data-lmod="${m}"]`).checked); layerChanged();
+    });
+    $("lKey").onchange = e => { a.key = e.target.value; layerChanged(); };
+  }
+  if ($("lConnect")) $("lConnect").onclick = connectDevice;
+  $("lSave").onclick = saveLayer;
+}
+
+// Called by the page's keydown handler while a custom shortcut is recording.
+function recordLayerKey(e) {
+  const key = keyFromEvent(e);
+  if (!key) return;
+  layerSet()[layerRec] = { key, mods: MODS.map(([m]) => m).filter(m => ({ ctrl: e.ctrlKey, alt: e.altKey, shift: e.shiftKey, cmd: e.metaKey })[m]) };
+  layerRec = null;
+  layerChanged();
+}
+
+async function saveLayer() {
+  const L = appLayer, set = layerSet(), name = LAYER_NAME[L];
+  const say = t => { layerMsg = t; log(t); renderLayerEditor(); };
+  const todo = CONTROLS.filter(c => set[c.id]);
+  if (!todo.length) return say(`Nothing to save: every part of the ${name} is set to keep the knob's own key.`);
+  const unslotted = todo.filter(c => !slots[c.id]);
+  if (unslotted.length) return say(`No slot set for: ${unslotted.map(c => c.name).join(", ")}. Set it under Device setup → Slots first.`);
+  const dup = sharedSlot(todo);
+  if (dup) return say(`Two parts use ${slotLabel(dup)}. Give each its own slot under Device setup → Slots first.`);
+  $("lSave").disabled = true;
+  try {
+    for (const c of todo) {
+      const a = set[c.id];
+      // "Same as red layer" writes red's key, so Knob Agent does that part's per-app action on this layer too.
+      if (a.red) await bindKey(slots[c.id], c.hid, c.mods || [], L);
+      else if (a.media) { await send(mediaBindMessage(slots[c.id], a.media, L)); await send(FINISH); }
+      else await bindKey(slots[c.id], HID[a.key], a.mods, L);
+    }
+    layerData.saved[L] = new Date().toISOString(); storeLayers();
+    renderKnob();
+    say(`Saved ${todo.length} part(s) to the ${name}. Press the button on the knob's side until the light is ${name.split(" ")[0]} to use them.`);
+  } catch (e) { say("Save failed: " + e.message); }
+}
 
 load();
 </script>
