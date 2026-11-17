@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Knob Configurator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --bg: #f4f4f2; --card: #fff; --ink: #1d1d1f; --muted: #6e6e73; --line: #e2e2e0; --soft: #f0f0ee;
+    --accent: #2f6fde; --accent-soft: rgba(47,111,222,.16); --ok: #1f8a4c; --warn: #b5541c; --flash: rgba(255,163,26,.8);
+    --metal-a: #fbfbfb; --metal-b: #c9cacd; --metal-c: #9fa1a6;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #161617; --card: #1f1f21; --ink: #f2f2f2; --muted: #9a9aa0; --line: #333336; --soft: #29292c;
+      --accent-soft: rgba(90,145,255,.22); --metal-a: #d9dadc; --metal-b: #9c9ea3; --metal-c: #6f7176; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif; background: var(--bg); color: var(--ink); }
+  main { max-width: 1240px; margin: 0 auto; padding: 24px 20px 64px; }
+  header { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
+  h1 { font-size: 24px; margin: 0; }
+  h2 { font-size: 16px; margin: 0 0 8px; }
+  h3 { font-size: 13px; margin: 14px 0 6px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .pill { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 99px; background: var(--soft); color: var(--muted); }
+  .pill.ok { color: var(--ok); } .pill.bad { color: var(--warn); }
+  .spacer { flex: 1; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 12px; }
+  .warn { color: var(--warn); }
+  .banner { background: var(--card); border: 1px solid var(--warn); color: var(--ink); border-radius: 12px; padding: 10px 14px; margin-bottom: 12px; }
+  .banner b { color: var(--warn); }
+  button { font: inherit; border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 9px; padding: 6px 12px; cursor: pointer; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.link { border: none; background: none; color: var(--accent); padding: 0; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  select, input[type=text], input[type=number] { font: inherit; padding: 5px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink); }
+  input[type=text] { width: 100%; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .tabs { display: flex; gap: 6px; margin-bottom: 14px; }
+  .tabs button { border-radius: 99px; }
+  .tabs button.on { background: var(--ink); color: var(--card); border-color: var(--ink); }
+  .switch { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none; }
+  .switch input { display: none; }
+  .switch .track { width: 38px; height: 22px; border-radius: 99px; background: var(--line); position: relative; transition: background .15s; }
+  .switch .track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left .15s; box-shadow: 0 1px 2px rgba(0,0,0,.3); }
+  .switch input:checked + .track { background: var(--accent); }
+  .switch input:checked + .track::after { left: 19px; }
+
+  .grid { display: grid; grid-template-columns: 250px minmax(0, 1fr) 330px; gap: 14px; align-items: start; }
+  @media (max-width: 1050px) { .grid { grid-template-columns: 1fr; } }
+
+  /* App list */
+  .apps { display: flex; flex-direction: column; gap: 2px; max-height: 70vh; overflow: auto; }
+  .app { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: 9px; cursor: pointer; }
+  .app:hover { background: var(--soft); }
+  .app.on { background: var(--accent-soft); }
+  .app .name { flex: 1; }
+  .app.off .name { color: var(--muted); text-decoration: line-through; }
+  .tag { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--ok); }
+  details summary { cursor: pointer; color: var(--muted); font-size: 12px; padding: 6px 10px; }
+
+  /* Illustration */
+  .stage { display: flex; flex-direction: column; align-items: center; }
+  .stage-head { width: 100%; display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  svg#knob { width: 100%; max-width: 420px; height: auto; }
+  .zone { fill: transparent; stroke: transparent; stroke-width: 2; cursor: pointer; transition: fill .15s; }
+  .zone:hover { fill: var(--accent-soft); }
+  .zone.sel { fill: var(--accent-soft); stroke: var(--accent); }
+  .zone.flash { animation: flash .7s ease-out; }
+  @keyframes flash { 0% { fill: var(--flash); } 100% { fill: transparent; } }
+  .glyph { pointer-events: none; fill: #3a3b3f; font-weight: 600; text-anchor: middle; dominant-baseline: central; }
+  .glyph.cap { font-size: 9px; letter-spacing: .12em; fill: #55575c; font-weight: 700; }
+  .legend { width: 100%; margin-top: 10px; display: grid; gap: 2px; }
+  .legend .item { display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; align-items: center; padding: 6px 10px; border-radius: 9px; cursor: pointer; }
+  .legend .item:hover { background: var(--soft); }
+  .legend .item.sel { background: var(--accent-soft); }
+  .legend .item.flash { animation: flashbg .7s ease-out; }
+  @keyframes flashbg { 0% { background: var(--flash); } }
+  .key { font: 600 11px ui-monospace, Menlo, monospace; background: var(--soft); border: 1px solid var(--line); border-radius: 6px; padding: 1px 5px; text-align: center; }
+  .act { font-weight: 600; text-align: right; }
+  .act.inherit { color: var(--muted); font-weight: 400; }
+
+  /* Editor */
+  .seg { display: flex; flex-wrap: wrap; gap: 4px; }
+  .seg button { padding: 4px 10px; font-size: 13px; }
+  .seg button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .shortcut { font: 600 20px -apple-system, sans-serif; padding: 10px 12px; border: 1px dashed var(--line); border-radius: 10px; text-align: center; min-height: 48px; }
+  .shortcut.recording { border-color: var(--accent); color: var(--accent); }
+  .mods label { margin-right: 10px; white-space: nowrap; }
+  .field { margin-top: 10px; }
+  .field > label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 3px; }
+  .save { font-size: 12px; }
+
+  /* Device tab */
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 8px 6px; border-top: 1px solid var(--line); }
+  th { font-size: 12px; color: var(--muted); border-top: none; }
+  pre#log { background: var(--soft); border: 1px solid var(--line); border-radius: 10px; padding: 10px; max-height: 200px; overflow: auto; font-size: 12px; margin: 0; white-space: pre-wrap; }
+  #testbox { font-size: 16px; padding: 8px; }
+  .stack > * + * { margin-top: 14px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Knob Configurator</h1>
+    <span id="agentPill" class="pill">Checking Knob Agent…</span>
+    <span class="spacer"></span>
+    <label class="switch" title="While on, turning or pressing the knob selects that part here instead of doing its action.">
+      <input type="checkbox" id="configMode"><span class="track"></span><span>Configuration mode</span>
+    </label>
+  </header>
+  <div id="banners"></div>
+  <div class="tabs">
+    <button data-tab="apps" class="on">Apps</button>
+    <button data-tab="device">Device setup</button>
+  </div>
+
+  <!-- APPS TAB -->
+  <section id="tab-apps">
+    <div class="grid">
+      <div class="card">
+        <h2>Apps</h2>
+        <div id="appList" class="apps"></div>
+        <h3>Add an app</h3>
+        <div class="row">
+          <select id="addApp" style="flex:1; min-width:0"></select>
+          <button id="addAppBtn">Add</button>
+        </div>
+        <p class="small muted">Apps you've used recently are listed first.</p>
+        <button class="link small" id="resetAll">Restore all suggested settings…</button>
+      </div>
+
+      <div class="card stage">
+        <div class="stage-head">
+          <h2 style="margin:0" id="stageTitle">Everything else</h2>
+          <span class="spacer"></span>
+          <span class="save muted" id="saveState"></span>
+        </div>
+        <p class="small muted" style="margin:0 0 6px; align-self:flex-start" id="stageHint">Click a part of the knob, or switch on Configuration mode and turn the real knob.</p>
+        <svg id="knob" viewBox="0 0 400 400" role="img" aria-label="The two knobs seen from above"></svg>
+        <div class="legend" id="legend"></div>
+      </div>
+
+      <div class="card" id="editor"></div>
+    </div>
+  </section>
+
+  <!-- DEVICE TAB -->
+  <section id="tab-device" hidden>
+    <div class="stack">
+      <div class="card">
+        <h2>Set up the knob for app switching</h2>
+        <p class="muted">This saves F13–F19 on the knob, one key per part, which Knob Agent turns into each app's shortcut. You only need to do it once. Plug the knob in with the USB-C cable and use Google Chrome or Microsoft Edge; Safari and apps' built-in browsers can't talk to USB devices.</p>
+        <div class="row">
+          <button id="connect" class="primary">Connect device</button>
+          <span id="devStatus" class="pill bad">Not connected</span>
+          <button id="writeF" disabled>Save F13–F19 to the knob</button>
+        </div>
+        <p class="small warn" id="hidSupport"></p>
+      </div>
+
+      <div class="card">
+        <h2>Slots</h2>
+        <p class="muted small">Which slot in the knob's memory each part uses. If a part lights up the wrong area in Configuration mode, or nothing at all, use “Find slots again” below and set the slots here.</p>
+        <table>
+          <thead><tr><th>Part</th><th>Slot</th><th>Sends</th></tr></thead>
+          <tbody id="slotRows"></tbody>
+        </table>
+        <details style="margin-top:10px">
+          <summary>Find slots again</summary>
+          <p class="small muted">Gives every slot its own letter. Click the box, then turn or press each part and read which slot it used. Afterwards, save F13–F19 again.</p>
+          <div class="row"><button id="discover" disabled>Write test letters</button></div>
+          <p><input id="testbox" type="text" placeholder="Click here, then turn or press each part…" autocomplete="off" spellcheck="false"></p>
+          <ul id="found" class="small"></ul>
+        </details>
+      </div>
+
+      <div class="card">
+        <h2>Log</h2>
+        <pre id="log"></pre>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+// ---------------------------------------------------------------------------
+// The seven parts of the knob, and the F-key each one sends.
+const CONTROLS = [
+  { id: "bottomLeft",  name: "Bottom knob · turn left",       fkey: "F13", hid: 0x68 },
+  { id: "bottomRight", name: "Bottom knob · turn right",      fkey: "F14", hid: 0x69 },
+  { id: "topLeft",     name: "Top knob · turn left",          fkey: "F15", hid: 0x6a },
+  { id: "topRight",    name: "Top knob · turn right",         fkey: "F16", hid: 0x6b },
+  { id: "topPress",    name: "Top knob · press",              fkey: "F17", hid: 0x6c },
+  { id: "pressLeft",   name: "Top knob · press + turn left",  fkey: "F18", hid: 0x6d },
+  { id: "pressRight",  name: "Top knob · press + turn right", fkey: "F19", hid: 0x6e },
+];
+const CONTROL = Object.fromEntries(CONTROLS.map(c => [c.id, c]));
+
+// Keys a shortcut can use (names match Knob Agent).
+const KEY_NAMES = [
+  ..."abcdefghijklmnopqrstuvwxyz".split(""), ..."0123456789".split(""),
+  "-", "=", "[", "]", "\\", ";", "'", "`", ",", ".", "/",
+  "space", "return", "tab", "escape", "delete", "forwarddelete",
+  "left", "right", "up", "down", "home", "end", "pageup", "pagedown",
+  "f1", "f2", "f3", "f4", "f5", "f6", "f7", "f8", "f9", "f10", "f11", "f12",
+];
+const KEY_LABEL = { space: "Space", return: "↩ Return", tab: "⇥ Tab", escape: "Esc", delete: "⌫ Delete", forwarddelete: "⌦ Fwd Delete",
+  left: "←", right: "→", up: "↑", down: "↓", home: "Home", end: "End", pageup: "Page Up", pagedown: "Page Down" };
+const keyLabel = k => KEY_LABEL[k] || k.toUpperCase();
+const MODS = [["ctrl", "⌃", "Control"], ["alt", "⌥", "Option"], ["shift", "⇧", "Shift"], ["cmd", "⌘", "Command"]];
+const CODE_TO_KEY = { Minus: "-", Equal: "=", BracketLeft: "[", BracketRight: "]", Backslash: "\\", Semicolon: ";", Quote: "'",
+  Backquote: "`", Comma: ",", Period: ".", Slash: "/", Space: "space", Enter: "return", NumpadEnter: "return", Tab: "tab",
+  Escape: "escape", Backspace: "delete", Delete: "forwarddelete", ArrowLeft: "left", ArrowRight: "right", ArrowUp: "up",
+  ArrowDown: "down", Home: "home", End: "end", PageUp: "pageup", PageDown: "pagedown" };
+function keyFromEvent(e) {
+  if (/^Key[A-Z]$/.test(e.code)) return e.code.slice(3).toLowerCase();
+  if (/^Digit\d$/.test(e.code)) return e.code.slice(5);
+  if (/^F([1-9]|1[0-2])$/.test(e.code)) return e.code.toLowerCase();
+  return CODE_TO_KEY[e.code] || null;
+}
+const MEDIA = [["volumeUp", "Volume up"], ["volumeDown", "Volume down"], ["mute", "Mute"], ["playPause", "Play / pause"],
+  ["next", "Next track"], ["previous", "Previous track"], ["brightnessUp", "Brightness up"], ["brightnessDown", "Brightness down"]];
+const MEDIA_LABEL = Object.fromEntries(MEDIA);
+
+function shortcutText(a) {
+  if (!a || !a.key) return "—";
+  const mods = MODS.filter(([m]) => (a.mods || []).includes(m)).map(([, s]) => s).join("");
+  return mods + keyLabel(a.key);
+}
+function describe(a) {
+  if (!a) return "Nothing";
+  if (a.type === "key") return shortcutText(a);
+  if (a.type === "scroll") return `Scroll ${a.dy > 0 ? "up" : a.dy < 0 ? "down" : a.dx > 0 ? "left" : "right"}`;
+  if (a.type === "media") return MEDIA_LABEL[a.media] || a.media;
+  return "Nothing";
+}
+
+// ---------------------------------------------------------------------------
+// State from Knob Agent
+let st = null, cfg = null, agentOK = false;
+let selProfile = "default", selControl = "topRight", recording = false;
+
+async function api(path, method = "GET", body) {
+  const opt = { method, headers: {} };
+  if (body !== undefined) { opt.headers["Content-Type"] = "application/json"; opt.body = JSON.stringify(body); }
+  const r = await fetch(path, opt);
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || r.statusText);
+  return j;
+}
+
+async function load() {
+  try { st = await api("/api/state"); cfg = st.config; agentOK = true; }
+  catch (e) { agentOK = false; }
+  renderBanners();
+  renderAll();
+  if (agentOK) connectEvents();
+}
+
+function renderBanners() {
+  const b = [];
+  const pill = $("agentPill");
+  if (!agentOK) {
+    pill.textContent = "Knob Agent not running"; pill.className = "pill bad";
+    b.push(`<b>Knob Agent isn't running.</b> Open “Knob Agent” from your Applications folder, then reload this page. App settings can't be shown or saved without it; the Device setup tab still works.`);
+  } else {
+    pill.textContent = st.paused ? "Knob Agent paused" : "Knob Agent running"; pill.className = "pill " + (st.paused ? "bad" : "ok");
+    if (!st.tapActive) b.push(`<b>Knob Agent needs permission.</b> In System Settings → Device Control and Data Access → Accessibility, switch on “Knob Agent” (on older macOS: Privacy &amp; Security → Accessibility). If it's already on, remove it with “–” and add it again with “+”. It starts working a few seconds later; reload this page to check.`);
+  }
+  if (/Electron|Claude\//.test(navigator.userAgent)) b.push(`<b>This is an app's built-in browser.</b> Settings work here, but setting up the device needs Google Chrome or Microsoft Edge.`);
+  $("banners").innerHTML = b.map(x => `<div class="banner">${x}</div>`).join("");
+}
+
+// ---------------------------------------------------------------------------
+// Profiles
+const isDefault = id => id === "default";
+const getProfile = id => isDefault(id) ? cfg.defaultProfile : cfg.profiles.find(p => p.id === id);
+function installedMatch(p) {
+  if (!st) return false;
+  return p.bundleIds.some(id => id && st.installedApps.some(a => a.bundleId.toLowerCase().startsWith(id.toLowerCase())));
+}
+function matchProfileId(bundleId) {
+  if (!bundleId || !cfg) return "default";
+  const b = bundleId.toLowerCase();
+  const p = cfg.profiles.find(p => p.enabled !== false && p.bundleIds.some(id => id && b.startsWith(id.toLowerCase())));
+  return p ? p.id : "default";
+}
+function actionFor(p, c) {
+  if (p.actions[c]) return { action: p.actions[c], inherited: false };
+  if (!isDefault(p.id)) return { action: cfg.defaultProfile.actions[c], inherited: true };
+  return { action: null, inherited: false };
+}
+
+let saveTimer = null;
+function scheduleSave() {
+  $("saveState").textContent = "Saving…";
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    try { await api("/api/config", "PUT", cfg); $("saveState").textContent = "Saved"; }
+    catch (e) { $("saveState").innerHTML = `<span class="warn">Couldn't save: ${esc(e.message)}</span>`; }
+  }, 250);
+}
+
+// ---------------------------------------------------------------------------
+// Rendering
+function renderAll() {
+  if (!cfg) { $("appList").innerHTML = `<p class="muted small">Waiting for Knob Agent.</p>`; $("editor").innerHTML = ""; renderKnob(); return; }
+  if (!getProfile(selProfile)) selProfile = "default";
+  renderApps(); renderKnob(); renderEditor(); renderAddApp();
+}
+
+function renderApps() {
+  const front = matchProfileId(st.frontmost);
+  const item = p => `<div class="app${p.id === selProfile ? " on" : ""}${p.enabled === false ? " off" : ""}" data-p="${esc(p.id)}">
+      <span class="name">${esc(p.name)}</span>${p.id === front ? '<span class="tag">in front</span>' : ""}</div>`;
+  const installed = cfg.profiles.filter(installedMatch);
+  const other = cfg.profiles.filter(p => !installedMatch(p));
+  $("appList").innerHTML = item(cfg.defaultProfile) + installed.map(item).join("") +
+    (other.length ? `<details${other.some(p => p.id === selProfile) ? " open" : ""}><summary>Not installed (${other.length})</summary>${other.map(item).join("")}</details>` : "");
+  $("appList").querySelectorAll(".app").forEach(el => el.onclick = () => { selProfile = el.dataset.p; renderAll(); });
+}
+
+function renderAddApp() {
+  const covered = id => cfg.profiles.some(p => p.bundleIds.some(b => b && id.toLowerCase().startsWith(b.toLowerCase())));
+  const skip = /^(com\.apple\.(finder|systempreferences|dock|loginwindow)|io\.github\.itsdamiro\.knob-agent)$/i;
+  const seen = new Set();
+  const opts = [];
+  const add = (a, group) => {
+    if (seen.has(a.bundleId) || covered(a.bundleId) || skip.test(a.bundleId)) return;
+    seen.add(a.bundleId); opts.push({ ...a, group });
+  };
+  (st.recentApps || []).forEach(a => add(a, "Recently used"));
+  (st.installedApps || []).forEach(a => add(a, "Installed"));
+  const groups = ["Recently used", "Installed"].map(g => {
+    const list = opts.filter(o => o.group === g);
+    return list.length ? `<optgroup label="${g}">${list.map(o => `<option value="${esc(o.bundleId)}">${esc(o.name)}</option>`).join("")}</optgroup>` : "";
+  }).join("");
+  $("addApp").innerHTML = groups || `<option value="">No other apps found</option>`;
+}
+
+$("addAppBtn").onclick = () => {
+  const id = $("addApp").value;
+  if (!id || !cfg) return;
+  const a = [...st.recentApps, ...st.installedApps].find(x => x.bundleId === id);
+  const p = { id: "app-" + id, name: a ? a.name : id, bundleIds: [id], enabled: true, actions: {} };
+  cfg.profiles.push(p);
+  selProfile = p.id;
+  changed();
+};
+
+$("resetAll").onclick = async () => {
+  if (!agentOK) return;
+  if (!confirm("Replace every app's settings with the suggested ones? Apps you added yourself are removed.")) return;
+  st = await api("/api/reset", "POST", {});
+  cfg = st.config; selProfile = "default"; renderAll();
+  $("saveState").textContent = "Restored";
+};
+
+// --- The knob illustration -------------------------------------------------
+function pt(r, a) { const t = a * Math.PI / 180; return [200 + r * Math.sin(t), 200 - r * Math.cos(t)]; }
+function sector(r1, r2, a0, a1) {
+  const f = n => n.toFixed(1);
+  const [x0, y0] = pt(r2, a0), [x1, y1] = pt(r2, a1), [x2, y2] = pt(r1, a1), [x3, y3] = pt(r1, a0);
+  const L = (a1 - a0) > 180 ? 1 : 0;
+  return `M${f(x0)} ${f(y0)}A${r2} ${r2} 0 ${L} 1 ${f(x1)} ${f(y1)}L${f(x2)} ${f(y2)}A${r1} ${r1} 0 ${L} 0 ${f(x3)} ${f(y3)}Z`;
+}
+const ZONES = {
+  bottomLeft:  { d: sector(124, 182, 181, 359), at: pt(153, 270), glyph: "↺" },
+  bottomRight: { d: sector(124, 182, 1, 179),   at: pt(153, 90),  glyph: "↻" },
+  topLeft:     { d: sector(42, 112, 271, 359),  at: pt(78, 315),  glyph: "↺" },
+  topRight:    { d: sector(42, 112, 1, 89),     at: pt(78, 45),   glyph: "↻" },
+  pressRight:  { d: sector(42, 112, 91, 179),   at: pt(78, 135),  glyph: "↻", dot: true },
+  pressLeft:   { d: sector(42, 112, 181, 269),  at: pt(78, 225),  glyph: "↺", dot: true },
+  topPress:    { circle: 38, at: [200, 200] },
+};
+function buildKnobSVG() {
+  let s = `<defs>
+    <radialGradient id="base" cx="40%" cy="35%" r="75%"><stop offset="0" stop-color="var(--metal-a)"/><stop offset=".7" stop-color="var(--metal-b)"/><stop offset="1" stop-color="var(--metal-c)"/></radialGradient>
+    <radialGradient id="cap" cx="38%" cy="32%" r="80%"><stop offset="0" stop-color="#ffffff"/><stop offset=".65" stop-color="var(--metal-a)"/><stop offset="1" stop-color="var(--metal-b)"/></radialGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="4" stdDeviation="6" flood-opacity=".25"/></filter>
+  </defs>
+  <circle cx="200" cy="200" r="186" fill="url(#base)" filter="url(#shadow)"/>`;
+  for (let a = 0; a < 360; a += 3) {
+    const [x1, y1] = pt(176, a), [x2, y2] = pt(185, a);
+    s += `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#7d7f84" stroke-opacity=".45" stroke-width="1.2"/>`;
+  }
+  s += `<circle cx="200" cy="200" r="118" fill="url(#cap)" filter="url(#shadow)" stroke="#8d8f94" stroke-opacity=".5"/>`;
+  for (let r = 12; r < 116; r += 5) s += `<circle cx="200" cy="200" r="${r}" fill="none" stroke="#8a8c91" stroke-opacity=".18"/>`;
+  s += `<text class="glyph cap" x="200" y="${pt(153, 0)[1]}">BOTTOM KNOB</text><text class="glyph cap" x="200" y="${pt(153, 180)[1]}">BOTTOM KNOB</text>`;
+  s += `<text class="glyph cap" x="200" y="${pt(78, 0)[1]}">TOP KNOB</text>`;
+  for (const c of CONTROLS) {
+    const z = ZONES[c.id];
+    s += z.circle ? `<circle class="zone" data-c="${c.id}" cx="200" cy="200" r="${z.circle}"><title>${c.name}</title></circle>`
+                  : `<path class="zone" data-c="${c.id}" d="${z.d}"><title>${c.name}</title></path>`;
+    const [x, y] = z.at;
+    if (z.dot) s += `<text class="glyph" x="${x}" y="${y - 11}" style="font-size:9px">● PRESS +</text><text class="glyph" x="${x}" y="${y + 8}" style="font-size:22px">${z.glyph}</text>`;
+    else if (c.id === "topPress") s += `<text class="glyph" x="${x}" y="${y - 4}" style="font-size:14px">●</text><text class="glyph" x="${x}" y="${y + 12}" style="font-size:9px">PRESS</text>`;
+    else s += `<text class="glyph" x="${x}" y="${y}" style="font-size:26px">${z.glyph}</text>`;
+  }
+  return s;
+}
+$("knob").innerHTML = buildKnobSVG();
+$("knob").querySelectorAll(".zone").forEach(z => z.addEventListener("click", () => selectControl(z.dataset.c)));
+
+function renderKnob() {
+  $("knob").querySelectorAll(".zone").forEach(z => z.classList.toggle("sel", z.dataset.c === selControl));
+  const p = cfg && getProfile(selProfile);
+  $("stageTitle").textContent = p ? p.name : "Knob";
+  $("legend").innerHTML = CONTROLS.map(c => {
+    let act = "", inh = false;
+    if (p) {
+      const r = actionFor(p, c.id);
+      inh = r.inherited;
+      act = r.action && r.action.label && r.action.type !== "none"
+        ? `${esc(r.action.label)} <span class="muted small">${esc(describe(r.action))}</span>`
+        : esc(describe(r.action));
+    }
+    return `<div class="item${c.id === selControl ? " sel" : ""}" data-c="${c.id}"><span class="key">${c.fkey}</span><span>${c.name}</span>
+      <span class="act${inh ? " inherit" : ""}">${inh ? "Same as Everything else" : act}</span></div>`;
+  }).join("");
+  $("legend").querySelectorAll(".item").forEach(el => el.onclick = () => selectControl(el.dataset.c));
+}
+
+function selectControl(c) { selControl = c; recording = false; renderKnob(); if (cfg) renderEditor(); }
+function flash(c) {
+  for (const el of document.querySelectorAll(`[data-c="${c}"]`)) { el.classList.remove("flash"); void el.getBoundingClientRect(); el.classList.add("flash"); }
+}
+
+// --- Editor ----------------------------------------------------------------
+function renderEditor() {
+  const p = getProfile(selProfile);
+  if (!p) return;
+  const c = CONTROL[selControl];
+  const { action, inherited } = actionFor(p, selControl);
+  const own = p.actions[selControl];
+  const type = inherited ? "inherit" : (action ? action.type : "none");
+  const types = [["key", "Shortcut"], ["scroll", "Scroll"], ["media", "Media key"], ["none", "Nothing"]];
+  if (!isDefault(p.id)) types.push(["inherit", "Same as Everything else"]);
+
+  let body = "";
+  if (type === "key") {
+    body = `<div class="field"><label>Shortcut</label>
+        <div class="shortcut${recording ? " recording" : ""}" id="sc">${recording ? "Press the keys now…" : esc(shortcutText(own))}</div>
+        <div class="row" style="margin-top:6px"><button id="rec">${recording ? "Cancel" : "Record shortcut"}</button><span class="small muted">or pick below</span></div></div>
+      <div class="field mods">${MODS.map(([m, s, n]) => `<label><input type="checkbox" data-mod="${m}"${(own.mods || []).includes(m) ? " checked" : ""}> ${s} ${n}</label>`).join("")}</div>
+      <div class="field"><select id="keySel">${KEY_NAMES.map(k => `<option value="${esc(k)}"${k === own.key ? " selected" : ""}>${esc(keyLabel(k))}</option>`).join("")}</select></div>`;
+  } else if (type === "scroll") {
+    const dir = own.dy > 0 ? "up" : own.dy < 0 ? "down" : own.dx > 0 ? "left" : "right";
+    const amt = Math.abs(own.dy || own.dx || 3);
+    body = `<div class="field"><label>Direction</label><select id="scDir">${["up", "down", "left", "right"].map(d => `<option${d === dir ? " selected" : ""}>${d}</option>`).join("")}</select></div>
+      <div class="field"><label>Lines per click</label><input type="number" id="scAmt" min="1" max="20" value="${amt}"></div>`;
+  } else if (type === "media") {
+    body = `<div class="field"><label>Media key</label><select id="mediaSel">${MEDIA.map(([v, l]) => `<option value="${v}"${v === own.media ? " selected" : ""}>${l}</option>`).join("")}</select></div>`;
+  } else if (type === "inherit") {
+    body = `<p class="muted small">Does what it does in “Everything else”: <b>${esc(describe(action))}</b>.</p>`;
+  } else {
+    body = `<p class="muted small">This part does nothing in ${esc(p.name)}.</p>`;
+  }
+  const labelField = (type === "key" || type === "scroll" || type === "media")
+    ? `<div class="field"><label>Name (shown in the list)</label><input type="text" id="lbl" value="${esc(own.label || "")}" placeholder="e.g. Zoom in"></div>` : "";
+
+  const profileHead = isDefault(p.id)
+    ? `<p class="small muted" style="margin:0">Used in any app that has no profile of its own.</p>`
+    : `<div class="field"><label>App name</label><input type="text" id="pName" value="${esc(p.name)}"></div>
+       <div class="row small" style="margin-top:8px">
+         <label class="switch"><input type="checkbox" id="pOn"${p.enabled !== false ? " checked" : ""}><span class="track"></span><span>Profile on</span></label>
+         <span class="spacer"></span><button class="link" id="pDel">Remove</button></div>
+       <p class="small muted" style="margin:6px 0 0">App ID: ${p.bundleIds.map(esc).join(", ")}${installedMatch(p) ? "" : " · not installed"}</p>`;
+
+  $("editor").innerHTML = `<h2>${esc(p.name)}</h2>${profileHead}
+    <hr style="border:none;border-top:1px solid var(--line);margin:14px 0">
+    <h2 style="margin-bottom:2px">${esc(c.name)}</h2><p class="small muted" style="margin:0 0 8px">The knob sends ${c.fkey}.</p>
+    <div class="seg" id="types">${types.map(([v, l]) => `<button data-t="${v}" class="${v === type ? "on" : ""}">${l}</button>`).join("")}</div>
+    ${body}${labelField}`;
+
+  $("types").querySelectorAll("button").forEach(b => b.onclick = () => {
+    const t = b.dataset.t;
+    const wasKey = own && own.type === "key";
+    if (t === "inherit") delete p.actions[selControl];
+    else if (t === "key") p.actions[selControl] = { type: "key", key: wasKey ? own.key : "a", mods: wasKey ? own.mods || [] : [], label: wasKey ? own.label || "" : "" };
+    else if (t === "scroll") p.actions[selControl] = { type: "scroll", dy: 3, dx: 0, label: "" };
+    else if (t === "media") p.actions[selControl] = { type: "media", media: "volumeUp", label: "" };
+    else p.actions[selControl] = { type: "none", label: "Nothing" };
+    recording = t === "key" && !wasKey;
+    changed();
+  });
+  if (type === "key") {
+    $("rec").onclick = () => { recording = !recording; renderEditor(); };
+    $("editor").querySelectorAll("[data-mod]").forEach(cb => cb.onchange = () => {
+      own.mods = MODS.map(([m]) => m).filter(m => $("editor").querySelector(`[data-mod="${m}"]`).checked); changed();
+    });
+    $("keySel").onchange = e => { own.key = e.target.value; changed(); };
+  }
+  if (type === "scroll") {
+    const upd = () => {
+      const d = $("scDir").value, n = Math.max(1, Math.min(20, +$("scAmt").value || 3));
+      own.dy = d === "up" ? n : d === "down" ? -n : 0; own.dx = d === "left" ? n : d === "right" ? -n : 0; changed();
+    };
+    $("scDir").onchange = upd; $("scAmt").onchange = upd;
+  }
+  if (type === "media") $("mediaSel").onchange = e => { own.media = e.target.value; changed(); };
+  if ($("lbl")) $("lbl").oninput = e => { own.label = e.target.value; scheduleSave(); renderKnob(); };
+  if ($("pName")) {
+    $("pName").oninput = e => { p.name = e.target.value; scheduleSave(); renderApps(); $("stageTitle").textContent = p.name; };
+    $("pOn").onchange = e => { p.enabled = e.target.checked; changed(); };
+    $("pDel").onclick = () => {
+      if (!confirm(`Remove the ${p.name} profile? The knob will do the “Everything else” actions in that app.`)) return;
+      cfg.profiles = cfg.profiles.filter(x => x !== p); selProfile = "default"; changed();
+    };
+  }
+}
+function changed() { scheduleSave(); renderAll(); }
+
+// Keyboard: knob keys reaching the page, and recording a shortcut
+window.addEventListener("keydown", e => {
+  const fk = /^F(1[3-9])$/.exec(e.key);
+  if (fk) {   // only happens when Knob Agent isn't intercepting the knob
+    const c = CONTROLS.find(x => x.fkey === e.key);
+    if (c) { e.preventDefault(); if ($("configMode").checked) selectControl(c.id); flash(c.id); }
+    return;
+  }
+  if (!recording) return;
+  if (["Shift", "Control", "Alt", "Meta"].includes(e.key)) return;
+  e.preventDefault(); e.stopPropagation();
+  const key = keyFromEvent(e);
+  const own = getProfile(selProfile).actions[selControl];
+  if (!key || !own) return;
+  own.key = key;
+  own.mods = MODS.map(([m]) => m).filter(m => ({ ctrl: e.ctrlKey, alt: e.altKey, shift: e.shiftKey, cmd: e.metaKey })[m]);
+  recording = false;
+  changed();
+}, true);
+
+// ---------------------------------------------------------------------------
+// Live events from Knob Agent: knob turns and app switches
+function connectEvents() {
+  const es = new EventSource("/api/events");
+  es.onmessage = m => {
+    const ev = JSON.parse(m.data);
+    if (ev.type === "knob") {
+      if ($("configMode").checked) selectControl(ev.control);
+      flash(ev.control);
+    } else if (ev.type === "app") {
+      st.frontmost = ev.bundleId;
+      st.recentApps = [{ bundleId: ev.bundleId, name: ev.name }, ...st.recentApps.filter(a => a.bundleId !== ev.bundleId)].slice(0, 12);
+      renderApps(); renderAddApp();
+    }
+  };
+  es.onerror = () => { $("agentPill").textContent = "Reconnecting to Knob Agent…"; $("agentPill").className = "pill bad"; };
+  es.onopen = () => { if (st) renderBanners(); if ($("configMode").checked) setListen(true); };
+}
+
+async function setListen(on) {
+  if (!agentOK) return;
+  try { await api("/api/listen", "POST", { on }); } catch (e) { /* the pill shows a lost connection */ }
+}
+function onConfigMode() {
+  const on = $("configMode").checked;
+  setListen(on);
+  $("stageHint").textContent = on
+    ? "Configuration mode is on: turn or press the real knob to select that part. The knob's actions are paused until you switch this off."
+    : "Click a part of the knob, or switch on Configuration mode and turn the real knob.";
+}
+$("configMode").onchange = onConfigMode;
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden && $("configMode").checked) { $("configMode").checked = false; onConfigMode(); }
+});
+
+// Tabs
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
+  document.querySelectorAll(".tabs button").forEach(x => x.classList.toggle("on", x === b));
+  $("tab-apps").hidden = b.dataset.tab !== "apps";
+  $("tab-device").hidden = b.dataset.tab !== "device";
+});
+
+// ---------------------------------------------------------------------------
+// Device setup over WebHID (514c:8850; protocol from ch57x-keyboard-tool's k8850_4x4 driver)
+const VID = 0x514c, PID = 0x8850, REPORT_ID = 0x03;
+const SLOT_LIST = [];
+for (let b = 0; b < 16; b++) SLOT_LIST.push({ id: b + 1, label: `Button ${b + 1}` });
+for (let n = 0; n < 3; n++) ["turn left", "press", "turn right"].forEach((a, i) => SLOT_LIST.push({ id: 17 + 3 * n + i, label: `Knob ${n + 1} ${a}` }));
+const slotLabel = id => (SLOT_LIST.find(s => s.id === id) || { label: "—" }).label;
+const letterFor = id => String.fromCharCode(96 + id);
+
+const SLOT_KEY = "knob-slots-v2";
+let slots = JSON.parse(localStorage.getItem(SLOT_KEY) || "null");
+if (!slots) {
+  // Carry over the slots from the first version of this page, if it was used in this browser.
+  const old = JSON.parse(localStorage.getItem("knob-configurator-v1") || "null");
+  const guess = [17, 19, 20, 22, 21, 0, 0];
+  slots = Object.fromEntries(CONTROLS.map((c, i) => [c.id, old && old[i] ? old[i].slot || 0 : guess[i]]));
+  localStorage.setItem(SLOT_KEY, JSON.stringify(slots));
+}
+
+let device = null;
+const hex = a => Array.from(a, b => b.toString(16).padStart(2, "0")).join(" ");
+function log(line) { $("log").textContent += line + "\n"; $("log").scrollTop = 1e9; }
+
+function renderSlots() {
+  $("slotRows").innerHTML = CONTROLS.map(c => `<tr><td>${c.name}</td>
+    <td><select data-slot="${c.id}">${[`<option value="0">— not set —</option>`, ...SLOT_LIST.map(s => `<option value="${s.id}"${s.id === slots[c.id] ? " selected" : ""}>${s.label} (${letterFor(s.id)})</option>`)].join("")}</select></td>
+    <td><span class="key">${c.fkey}</span></td></tr>`).join("");
+  $("slotRows").querySelectorAll("select").forEach(s => s.onchange = () => { slots[s.dataset.slot] = +s.value; localStorage.setItem(SLOT_KEY, JSON.stringify(slots)); });
+}
+renderSlots();
+
+function keyBindMessage(slotId, hidCode) { return [REPORT_ID, 0xfd, slotId, 1, 1, 0, 1, 0, 0, hidCode]; }
+const FINISH = [REPORT_ID, 0xfd, 0xfe, 0xff];
+async function send(msg) {
+  const data = new Uint8Array(64);
+  data.set(msg.slice(1));
+  await device.sendReport(msg[0], data);
+  log("→ " + hex(msg));
+}
+async function bindKey(slotId, hidCode) { await send(keyBindMessage(slotId, hidCode)); await send(FINISH); }
+
+function setDev(on) {
+  $("devStatus").textContent = on ? "Connected" : "Not connected";
+  $("devStatus").className = "pill " + (on ? "ok" : "bad");
+  $("writeF").disabled = $("discover").disabled = !on;
+}
+async function openDevice(d) { if (!d.opened) await d.open(); device = d; setDev(true); log("Connected to the knob."); }
+
+if (!("hid" in navigator)) {
+  $("hidSupport").textContent = "This browser can't talk to USB devices. Open this page in Google Chrome.";
+  $("connect").disabled = true;
+} else {
+  if (/Electron|Claude\//.test(navigator.userAgent)) $("hidSupport").textContent = "This is an app's built-in browser, which can't show the device picker. Open this address in Google Chrome.";
+  navigator.hid.getDevices().then(async ds => {
+    const d = ds.find(x => x.vendorId === VID && x.productId === PID && x.collections.some(c => c.usagePage === 0xff00));
+    if (d) { try { await openDevice(d); } catch (e) { log("Reconnect failed: " + e.message); } }
+  });
+  navigator.hid.addEventListener("disconnect", e => { if (e.device === device) { device = null; setDev(false); log("Knob unplugged."); } });
+}
+
+$("connect").onclick = async () => {
+  log("Waiting for the browser's device picker…");
+  try {
+    const list = await navigator.hid.requestDevice({ filters: [{ vendorId: VID, productId: PID, usagePage: 0xff00 }] });
+    if (!list.length) return log("No device picked.");
+    await openDevice(list.find(x => x.collections.some(c => c.usagePage === 0xff00)) || list[0]);
+  } catch (e) { log("Connect failed: " + e.message); }
+};
+
+$("writeF").onclick = async () => {
+  const todo = CONTROLS.filter(c => slots[c.id]);
+  const ids = todo.map(c => slots[c.id]);
+  const dup = ids.find((id, i) => ids.indexOf(id) !== i);
+  if (dup) return log(`Two parts use ${slotLabel(dup)}. Give each its own slot first.`);
+  $("writeF").disabled = true;
+  try {
+    for (const c of todo) await bindKey(slots[c.id], c.hid);
+    const skipped = CONTROLS.filter(c => !slots[c.id]).map(c => c.name);
+    log(`Done: saved ${todo.length} key(s) to the knob.` + (skipped.length ? ` No slot set for: ${skipped.join(", ")}.` : ""));
+  } catch (e) { log("Write failed: " + e.message); }
+  $("writeF").disabled = !device;
+};
+
+$("discover").onclick = async () => {
+  $("discover").disabled = true;
+  try {
+    for (const s of SLOT_LIST) await bindKey(s.id, 0x04 + s.id - 1);
+    log("Done: every slot now types its own letter.");
+    $("testbox").value = ""; $("found").innerHTML = ""; $("testbox").focus();
+  } catch (e) { log("Write failed: " + e.message); }
+  $("discover").disabled = !device;
+};
+$("testbox").addEventListener("input", () => {
+  const seen = [];
+  for (const ch of $("testbox").value.toLowerCase()) { const id = ch.charCodeAt(0) - 96; if (id >= 1 && id <= 25 && !seen.includes(id)) seen.push(id); }
+  $("found").innerHTML = seen.map(id => `<li><b>${letterFor(id)}</b> = ${slotLabel(id)}</li>`).join("");
+});
+
+load();
+</script>
+</body>
+</html>

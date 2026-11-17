@@ -1,0 +1,1244 @@
+{
+  "version": 1,
+  "defaultProfile": {
+    "id": "default",
+    "name": "Everything else",
+    "bundleIds": [],
+    "enabled": true,
+    "actions": {
+      "topLeft": {
+        "type": "media",
+        "media": "volumeDown",
+        "label": "Volume down"
+      },
+      "topRight": {
+        "type": "media",
+        "media": "volumeUp",
+        "label": "Volume up"
+      },
+      "topPress": {
+        "type": "media",
+        "media": "mute",
+        "label": "Mute"
+      },
+      "pressLeft": {
+        "type": "media",
+        "media": "previous",
+        "label": "Previous track"
+      },
+      "pressRight": {
+        "type": "media",
+        "media": "next",
+        "label": "Next track"
+      },
+      "bottomLeft": {
+        "type": "scroll",
+        "dy": 3,
+        "dx": 0,
+        "label": "Scroll up"
+      },
+      "bottomRight": {
+        "type": "scroll",
+        "dy": -3,
+        "dx": 0,
+        "label": "Scroll down"
+      }
+    }
+  },
+  "profiles": [
+    {
+      "id": "figma",
+      "name": "Figma",
+      "bundleIds": [
+        "com.figma.Desktop"
+      ],
+      "enabled": true,
+      "actions": {
+        "topLeft": {
+          "type": "key",
+          "key": "-",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom out"
+        },
+        "topRight": {
+          "type": "key",
+          "key": "=",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom in"
+        },
+        "bottomLeft": {
+          "type": "scroll",
+          "dy": 3,
+          "dx": 0,
+          "label": "Scroll up"
+        },
+        "bottomRight": {
+          "type": "scroll",
+          "dy": -3,
+          "dx": 0,
+          "label": "Scroll down"
+        },
+        "topPress": {
+          "type": "key",
+          "key": "1",
+          "mods": [
+            "shift"
+          ],
+          "label": "Zoom to fit"
+        },
+        "pressLeft": {
+          "type": "key",
+          "key": "tab",
+          "mods": [
+            "shift"
+          ],
+          "label": "Previous layer"
+        },
+        "pressRight": {
+          "type": "key",
+          "key": "tab",
+          "mods": [],
+          "label": "Next layer"
+        }
+      }
+    },
+    {
+      "id": "framer",
+      "name": "Framer",
+      "bundleIds": [
+        "com.framer"
+      ],
+      "enabled": true,
+      "actions": {
+        "topLeft": {
+          "type": "key",
+          "key": "-",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom out"
+        },
+        "topRight": {
+          "type": "key",
+          "key": "=",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom in"
+        },
+        "bottomLeft": {
+          "type": "scroll",
+          "dy": 3,
+          "dx": 0,
+          "label": "Scroll up"
+        },
+        "bottomRight": {
+          "type": "scroll",
+          "dy": -3,
+          "dx": 0,
+          "label": "Scroll down"
+        },
+        "pressLeft": {
+          "type": "key",
+          "key": "z",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Undo"
+        },
+        "pressRight": {
+          "type": "key",
+          "key": "z",
+          "mods": [
+            "shift",
+            "cmd"
+          ],
+          "label": "Redo"
+        },
+        "topPress": {
+          "type": "key",
+          "key": "1",
+          "mods": [
+            "shift"
+          ],
+          "label": "Zoom to fit"
+        }
+      }
+    },
+    {
+      "id": "sketch",
+      "name": "Sketch",
+      "bundleIds": [
+        "com.bohemiancoding.sketch3"
+      ],
+      "enabled": true,
+      "actions": {
+        "topLeft": {
+          "type": "key",
+          "key": "-",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom out"
+        },
+        "topRight": {
+          "type": "key",
+          "key": "=",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom in"
+        },
+        "bottomLeft": {
+          "type": "scroll",
+          "dy": 3,
+          "dx": 0,
+          "label": "Scroll up"
+        },
+        "bottomRight": {
+          "type": "scroll",
+          "dy": -3,
+          "dx": 0,
+          "label": "Scroll down"
+        },
+        "topPress": {
+          "type": "key",
+          "key": "1",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom to fit"
+        },
+        "pressLeft": {
+          "type": "key",
+          "key": "tab",
+          "mods": [
+            "shift"
+          ],
+          "label": "Previous layer"
+        },
+        "pressRight": {
+          "type": "key",
+          "key": "tab",
+          "mods": [],
+          "label": "Next layer"
+        }
+      }
+    },
+    {
+      "id": "canva",
+      "name": "Canva",
+      "bundleIds": [
+        "com.canva.canvaeditor"
+      ],
+      "enabled": true,
+      "actions": {
+        "topLeft": {
+          "type": "key",
+          "key": "-",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom out"
+        },
+        "topRight": {
+          "type": "key",
+          "key": "=",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom in"
+        },
+        "bottomLeft": {
+          "type": "scroll",
+          "dy": 3,
+          "dx": 0,
+          "label": "Scroll up"
+        },
+        "bottomRight": {
+          "type": "scroll",
+          "dy": -3,
+          "dx": 0,
+          "label": "Scroll down"
+        },
+        "pressLeft": {
+          "type": "key",
+          "key": "z",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Undo"
+        },
+        "pressRight": {
+          "type": "key",
+          "key": "z",
+          "mods": [
+            "shift",
+            "cmd"
+          ],
+          "label": "Redo"
+        },
+        "topPress": {
+          "type": "none",
+          "label": "Nothing"
+        }
+      }
+    },
+    {
+      "id": "photoshop",
+      "name": "Adobe Photoshop",
+      "bundleIds": [
+        "com.adobe.Photoshop"
+      ],
+      "enabled": true,
+      "actions": {
+        "topLeft": {
+          "type": "key",
+          "key": "[",
+          "mods": [],
+          "label": "Smaller brush"
+        },
+        "topRight": {
+          "type": "key",
+          "key": "]",
+          "mods": [],
+          "label": "Bigger brush"
+        },
+        "bottomLeft": {
+          "type": "key",
+          "key": "-",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom out"
+        },
+        "bottomRight": {
+          "type": "key",
+          "key": "=",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom in"
+        },
+        "pressLeft": {
+          "type": "key",
+          "key": "z",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Undo"
+        },
+        "pressRight": {
+          "type": "key",
+          "key": "z",
+          "mods": [
+            "shift",
+            "cmd"
+          ],
+          "label": "Redo"
+        },
+        "topPress": {
+          "type": "key",
+          "key": "x",
+          "mods": [],
+          "label": "Swap colours"
+        }
+      }
+    },
+    {
+      "id": "illustrator",
+      "name": "Adobe Illustrator",
+      "bundleIds": [
+        "com.adobe.illustrator"
+      ],
+      "enabled": true,
+      "actions": {
+        "topLeft": {
+          "type": "key",
+          "key": "-",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom out"
+        },
+        "topRight": {
+          "type": "key",
+          "key": "=",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom in"
+        },
+        "bottomLeft": {
+          "type": "scroll",
+          "dy": 3,
+          "dx": 0,
+          "label": "Scroll up"
+        },
+        "bottomRight": {
+          "type": "scroll",
+          "dy": -3,
+          "dx": 0,
+          "label": "Scroll down"
+        },
+        "pressLeft": {
+          "type": "key",
+          "key": "z",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Undo"
+        },
+        "pressRight": {
+          "type": "key",
+          "key": "z",
+          "mods": [
+            "shift",
+            "cmd"
+          ],
+          "label": "Redo"
+        },
+        "topPress": {
+          "type": "key",
+          "key": "0",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Fit artboard"
+        }
+      }
+    },
+    {
+      "id": "indesign",
+      "name": "Adobe InDesign",
+      "bundleIds": [
+        "com.adobe.InDesign"
+      ],
+      "enabled": true,
+      "actions": {
+        "topLeft": {
+          "type": "key",
+          "key": "-",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom out"
+        },
+        "topRight": {
+          "type": "key",
+          "key": "=",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom in"
+        },
+        "bottomLeft": {
+          "type": "scroll",
+          "dy": 3,
+          "dx": 0,
+          "label": "Scroll up"
+        },
+        "bottomRight": {
+          "type": "scroll",
+          "dy": -3,
+          "dx": 0,
+          "label": "Scroll down"
+        },
+        "topPress": {
+          "type": "key",
+          "key": "0",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Fit page"
+        },
+        "pressLeft": {
+          "type": "key",
+          "key": "pageup",
+          "mods": [
+            "shift"
+          ],
+          "label": "Previous page"
+        },
+        "pressRight": {
+          "type": "key",
+          "key": "pagedown",
+          "mods": [
+            "shift"
+          ],
+          "label": "Next page"
+        }
+      }
+    },
+    {
+      "id": "lightroom",
+      "name": "Adobe Lightroom",
+      "bundleIds": [
+        "com.adobe.lightroomCC",
+        "com.adobe.LightroomClassic"
+      ],
+      "enabled": true,
+      "actions": {
+        "bottomLeft": {
+          "type": "key",
+          "key": "-",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom out"
+        },
+        "bottomRight": {
+          "type": "key",
+          "key": "=",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom in"
+        },
+        "pressLeft": {
+          "type": "key",
+          "key": "z",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Undo"
+        },
+        "pressRight": {
+          "type": "key",
+          "key": "z",
+          "mods": [
+            "shift",
+            "cmd"
+          ],
+          "label": "Redo"
+        },
+        "topLeft": {
+          "type": "key",
+          "key": "left",
+          "mods": [],
+          "label": "Previous photo"
+        },
+        "topRight": {
+          "type": "key",
+          "key": "right",
+          "mods": [],
+          "label": "Next photo"
+        },
+        "topPress": {
+          "type": "key",
+          "key": "z",
+          "mods": [],
+          "label": "Toggle zoom"
+        }
+      }
+    },
+    {
+      "id": "acrobat",
+      "name": "Adobe Acrobat",
+      "bundleIds": [
+        "com.adobe.Acrobat"
+      ],
+      "enabled": true,
+      "actions": {
+        "topLeft": {
+          "type": "key",
+          "key": "-",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom out"
+        },
+        "topRight": {
+          "type": "key",
+          "key": "=",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom in"
+        },
+        "bottomLeft": {
+          "type": "scroll",
+          "dy": 3,
+          "dx": 0,
+          "label": "Scroll up"
+        },
+        "bottomRight": {
+          "type": "scroll",
+          "dy": -3,
+          "dx": 0,
+          "label": "Scroll down"
+        },
+        "topPress": {
+          "type": "key",
+          "key": "0",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Fit page"
+        },
+        "pressLeft": {
+          "type": "key",
+          "key": "left",
+          "mods": [],
+          "label": "Previous page"
+        },
+        "pressRight": {
+          "type": "key",
+          "key": "right",
+          "mods": [],
+          "label": "Next page"
+        }
+      }
+    },
+    {
+      "id": "premiere",
+      "name": "Adobe Premiere Pro",
+      "bundleIds": [
+        "com.adobe.PremierePro"
+      ],
+      "enabled": true,
+      "actions": {
+        "topLeft": {
+          "type": "key",
+          "key": "left",
+          "mods": [],
+          "label": "Back one frame"
+        },
+        "topRight": {
+          "type": "key",
+          "key": "right",
+          "mods": [],
+          "label": "Forward one frame"
+        },
+        "topPress": {
+          "type": "key",
+          "key": "space",
+          "mods": [],
+          "label": "Play / pause"
+        },
+        "pressLeft": {
+          "type": "key",
+          "key": "up",
+          "mods": [],
+          "label": "Previous edit point"
+        },
+        "pressRight": {
+          "type": "key",
+          "key": "down",
+          "mods": [],
+          "label": "Next edit point"
+        },
+        "bottomLeft": {
+          "type": "key",
+          "key": "-",
+          "mods": [],
+          "label": "Zoom timeline out"
+        },
+        "bottomRight": {
+          "type": "key",
+          "key": "=",
+          "mods": [],
+          "label": "Zoom timeline in"
+        }
+      }
+    },
+    {
+      "id": "aftereffects",
+      "name": "Adobe After Effects",
+      "bundleIds": [
+        "com.adobe.AfterEffects"
+      ],
+      "enabled": true,
+      "actions": {
+        "topLeft": {
+          "type": "key",
+          "key": "pageup",
+          "mods": [],
+          "label": "Back one frame"
+        },
+        "topRight": {
+          "type": "key",
+          "key": "pagedown",
+          "mods": [],
+          "label": "Forward one frame"
+        },
+        "topPress": {
+          "type": "key",
+          "key": "space",
+          "mods": [],
+          "label": "Play / pause"
+        },
+        "bottomLeft": {
+          "type": "key",
+          "key": "-",
+          "mods": [],
+          "label": "Zoom timeline out"
+        },
+        "bottomRight": {
+          "type": "key",
+          "key": "=",
+          "mods": [],
+          "label": "Zoom timeline in"
+        },
+        "pressLeft": {
+          "type": "key",
+          "key": "j",
+          "mods": [],
+          "label": "Previous keyframe"
+        },
+        "pressRight": {
+          "type": "key",
+          "key": "k",
+          "mods": [],
+          "label": "Next keyframe"
+        }
+      }
+    },
+    {
+      "id": "audition",
+      "name": "Adobe Audition",
+      "bundleIds": [
+        "com.adobe.Audition"
+      ],
+      "enabled": true,
+      "actions": {
+        "bottomLeft": {
+          "type": "scroll",
+          "dy": 3,
+          "dx": 0,
+          "label": "Scroll up"
+        },
+        "bottomRight": {
+          "type": "scroll",
+          "dy": -3,
+          "dx": 0,
+          "label": "Scroll down"
+        },
+        "pressLeft": {
+          "type": "key",
+          "key": "z",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Undo"
+        },
+        "pressRight": {
+          "type": "key",
+          "key": "z",
+          "mods": [
+            "shift",
+            "cmd"
+          ],
+          "label": "Redo"
+        },
+        "topLeft": {
+          "type": "key",
+          "key": "-",
+          "mods": [],
+          "label": "Zoom out"
+        },
+        "topRight": {
+          "type": "key",
+          "key": "=",
+          "mods": [],
+          "label": "Zoom in"
+        },
+        "topPress": {
+          "type": "key",
+          "key": "space",
+          "mods": [],
+          "label": "Play / pause"
+        }
+      }
+    },
+    {
+      "id": "affinity-photo",
+      "name": "Affinity Photo",
+      "bundleIds": [
+        "com.seriflabs.affinityphoto"
+      ],
+      "enabled": true,
+      "actions": {
+        "topLeft": {
+          "type": "key",
+          "key": "[",
+          "mods": [],
+          "label": "Smaller brush"
+        },
+        "topRight": {
+          "type": "key",
+          "key": "]",
+          "mods": [],
+          "label": "Bigger brush"
+        },
+        "bottomLeft": {
+          "type": "key",
+          "key": "-",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom out"
+        },
+        "bottomRight": {
+          "type": "key",
+          "key": "=",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom in"
+        },
+        "pressLeft": {
+          "type": "key",
+          "key": "z",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Undo"
+        },
+        "pressRight": {
+          "type": "key",
+          "key": "z",
+          "mods": [
+            "shift",
+            "cmd"
+          ],
+          "label": "Redo"
+        },
+        "topPress": {
+          "type": "key",
+          "key": "x",
+          "mods": [],
+          "label": "Swap colours"
+        }
+      }
+    },
+    {
+      "id": "affinity-designer",
+      "name": "Affinity Designer",
+      "bundleIds": [
+        "com.seriflabs.affinitydesigner"
+      ],
+      "enabled": true,
+      "actions": {
+        "topLeft": {
+          "type": "key",
+          "key": "-",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom out"
+        },
+        "topRight": {
+          "type": "key",
+          "key": "=",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom in"
+        },
+        "bottomLeft": {
+          "type": "scroll",
+          "dy": 3,
+          "dx": 0,
+          "label": "Scroll up"
+        },
+        "bottomRight": {
+          "type": "scroll",
+          "dy": -3,
+          "dx": 0,
+          "label": "Scroll down"
+        },
+        "pressLeft": {
+          "type": "key",
+          "key": "z",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Undo"
+        },
+        "pressRight": {
+          "type": "key",
+          "key": "z",
+          "mods": [
+            "shift",
+            "cmd"
+          ],
+          "label": "Redo"
+        },
+        "topPress": {
+          "type": "key",
+          "key": "0",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom to fit"
+        }
+      }
+    },
+    {
+      "id": "affinity-publisher",
+      "name": "Affinity Publisher",
+      "bundleIds": [
+        "com.seriflabs.affinitypublisher"
+      ],
+      "enabled": true,
+      "actions": {
+        "topLeft": {
+          "type": "key",
+          "key": "-",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom out"
+        },
+        "topRight": {
+          "type": "key",
+          "key": "=",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom in"
+        },
+        "bottomLeft": {
+          "type": "scroll",
+          "dy": 3,
+          "dx": 0,
+          "label": "Scroll up"
+        },
+        "bottomRight": {
+          "type": "scroll",
+          "dy": -3,
+          "dx": 0,
+          "label": "Scroll down"
+        },
+        "topPress": {
+          "type": "key",
+          "key": "0",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom to fit"
+        },
+        "pressLeft": {
+          "type": "key",
+          "key": "pageup",
+          "mods": [
+            "shift"
+          ],
+          "label": "Previous page"
+        },
+        "pressRight": {
+          "type": "key",
+          "key": "pagedown",
+          "mods": [
+            "shift"
+          ],
+          "label": "Next page"
+        }
+      }
+    },
+    {
+      "id": "affinity",
+      "name": "Affinity (2025)",
+      "bundleIds": [
+        "com.canva.affinity"
+      ],
+      "enabled": true,
+      "actions": {
+        "topLeft": {
+          "type": "key",
+          "key": "-",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom out"
+        },
+        "topRight": {
+          "type": "key",
+          "key": "=",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom in"
+        },
+        "bottomLeft": {
+          "type": "scroll",
+          "dy": 3,
+          "dx": 0,
+          "label": "Scroll up"
+        },
+        "bottomRight": {
+          "type": "scroll",
+          "dy": -3,
+          "dx": 0,
+          "label": "Scroll down"
+        },
+        "pressLeft": {
+          "type": "key",
+          "key": "z",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Undo"
+        },
+        "pressRight": {
+          "type": "key",
+          "key": "z",
+          "mods": [
+            "shift",
+            "cmd"
+          ],
+          "label": "Redo"
+        },
+        "topPress": {
+          "type": "key",
+          "key": "0",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom to fit"
+        }
+      }
+    },
+    {
+      "id": "pixelmator",
+      "name": "Pixelmator Pro",
+      "bundleIds": [
+        "com.pixelmatorteam.pixelmator"
+      ],
+      "enabled": true,
+      "actions": {
+        "topLeft": {
+          "type": "key",
+          "key": "[",
+          "mods": [],
+          "label": "Smaller brush"
+        },
+        "topRight": {
+          "type": "key",
+          "key": "]",
+          "mods": [],
+          "label": "Bigger brush"
+        },
+        "bottomLeft": {
+          "type": "key",
+          "key": "-",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom out"
+        },
+        "bottomRight": {
+          "type": "key",
+          "key": "=",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom in"
+        },
+        "pressLeft": {
+          "type": "key",
+          "key": "z",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Undo"
+        },
+        "pressRight": {
+          "type": "key",
+          "key": "z",
+          "mods": [
+            "shift",
+            "cmd"
+          ],
+          "label": "Redo"
+        },
+        "topPress": {
+          "type": "key",
+          "key": "0",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom to fit"
+        }
+      }
+    },
+    {
+      "id": "capcut",
+      "name": "CapCut",
+      "bundleIds": [
+        "com.lemon.lv"
+      ],
+      "enabled": true,
+      "actions": {
+        "topLeft": {
+          "type": "key",
+          "key": "left",
+          "mods": [],
+          "label": "Back one frame"
+        },
+        "topRight": {
+          "type": "key",
+          "key": "right",
+          "mods": [],
+          "label": "Forward one frame"
+        },
+        "topPress": {
+          "type": "key",
+          "key": "space",
+          "mods": [],
+          "label": "Play / pause"
+        },
+        "bottomLeft": {
+          "type": "key",
+          "key": "-",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom timeline out"
+        },
+        "bottomRight": {
+          "type": "key",
+          "key": "=",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom timeline in"
+        },
+        "pressLeft": {
+          "type": "key",
+          "key": "z",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Undo"
+        },
+        "pressRight": {
+          "type": "key",
+          "key": "z",
+          "mods": [
+            "shift",
+            "cmd"
+          ],
+          "label": "Redo"
+        }
+      }
+    },
+    {
+      "id": "finalcut",
+      "name": "Final Cut Pro",
+      "bundleIds": [
+        "com.apple.FinalCut"
+      ],
+      "enabled": true,
+      "actions": {
+        "topLeft": {
+          "type": "key",
+          "key": "left",
+          "mods": [],
+          "label": "Back one frame"
+        },
+        "topRight": {
+          "type": "key",
+          "key": "right",
+          "mods": [],
+          "label": "Forward one frame"
+        },
+        "topPress": {
+          "type": "key",
+          "key": "space",
+          "mods": [],
+          "label": "Play / pause"
+        },
+        "bottomLeft": {
+          "type": "key",
+          "key": "-",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom timeline out"
+        },
+        "bottomRight": {
+          "type": "key",
+          "key": "=",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom timeline in"
+        },
+        "pressLeft": {
+          "type": "key",
+          "key": "up",
+          "mods": [],
+          "label": "Previous edit point"
+        },
+        "pressRight": {
+          "type": "key",
+          "key": "down",
+          "mods": [],
+          "label": "Next edit point"
+        }
+      }
+    },
+    {
+      "id": "resolve",
+      "name": "DaVinci Resolve",
+      "bundleIds": [
+        "com.blackmagic-design.DaVinciResolve"
+      ],
+      "enabled": true,
+      "actions": {
+        "topLeft": {
+          "type": "key",
+          "key": "left",
+          "mods": [],
+          "label": "Back one frame"
+        },
+        "topRight": {
+          "type": "key",
+          "key": "right",
+          "mods": [],
+          "label": "Forward one frame"
+        },
+        "topPress": {
+          "type": "key",
+          "key": "space",
+          "mods": [],
+          "label": "Play / pause"
+        },
+        "bottomLeft": {
+          "type": "key",
+          "key": "-",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom timeline out"
+        },
+        "bottomRight": {
+          "type": "key",
+          "key": "=",
+          "mods": [
+            "cmd"
+          ],
+          "label": "Zoom timeline in"
+        },
+        "pressLeft": {
+          "type": "key",
+          "key": "up",
+          "mods": [],
+          "label": "Previous edit point"
+        },
+        "pressRight": {
+          "type": "key",
+          "key": "down",
+          "mods": [],
+          "label": "Next edit point"
+        }
+      }
+    }
+  ]
+}
