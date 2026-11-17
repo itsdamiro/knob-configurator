@@ -33,15 +33,15 @@ The knob has seven parts. Each one is set up to send a key that no normal keyboa
 |---|---|---|
 | Bottom knob, turn left | F13 | 7 |
 | Bottom knob, turn right | F20 | 8 |
-| Top knob, turn left | ⌃⌥⇧⌘F13 (Control-Option-Shift-Command-F13) | 2 |
+| Top knob, turn left | F17 | 2 |
 | Top knob, turn right | F16 | 4 |
-| Top knob, press | F17 | 3 |
+| Top knob, press | ⌃⌥⇧⌘F13 (Control-Option-Shift-Command-F13) | 3 |
 | Top knob, press and turn left | F18 | 5 |
 | Top knob, press and turn right | F19 | 6 |
 
 Knob Agent turns those keys into each app's shortcut. Because no normal keyboard sends them, your other keyboards are never touched.
 
-F14 and F15 are skipped on purpose: macOS turns them into screen-brightness keys before any app can see them. That leaves six spare F-keys for seven parts, so the top knob's left turn sends F13 with all four modifiers held.
+F14 and F15 are skipped on purpose: macOS turns them into screen-brightness keys before any app can see them. F21–F24 don't work either: macOS drops them. That leaves six spare F-keys for seven parts, so the top knob's press sends F13 with all four modifiers held. It's on the press, not a turn, so the modifiers flicker once per press instead of on every click.
 
 ## Install
 

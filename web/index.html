@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <title>Knob Configurator</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/png" href="/favicon.png">
 <style>
   :root {
     --bg: #f4f4f2; --card: #fff; --ink: #1d1d1f; --muted: #6e6e73; --line: #e2e2e0; --soft: #f0f0ee;
@@ -195,14 +196,15 @@ const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": 
 // ---------------------------------------------------------------------------
 // The seven parts of the knob, and the key each one sends.
 // F14 and F15 aren't used: macOS turns them into screen-brightness keys before any app sees them.
-// Only six spare F-keys work, so the top knob's left turn sends F13 with all four modifiers.
+// F21–F24 are dropped by macOS. That leaves six spare F-keys, so the top knob's press sends F13
+// with all four modifiers (once per press, rather than on every click of a turn).
 const HYPER = ["ctrl", "alt", "shift", "cmd"];
 const CONTROLS = [
   { id: "bottomLeft",  name: "Bottom knob · turn left",       fkey: "F13", hid: 0x68 },
   { id: "bottomRight", name: "Bottom knob · turn right",      fkey: "F20", hid: 0x6f },
-  { id: "topLeft",     name: "Top knob · turn left",          fkey: "⌃⌥⇧⌘F13", hid: 0x68, mods: HYPER },
+  { id: "topLeft",     name: "Top knob · turn left",          fkey: "F17", hid: 0x6c },
   { id: "topRight",    name: "Top knob · turn right",         fkey: "F16", hid: 0x6b },
-  { id: "topPress",    name: "Top knob · press",              fkey: "F17", hid: 0x6c },
+  { id: "topPress",    name: "Top knob · press",              fkey: "⌃⌥⇧⌘F13", hid: 0x68, mods: HYPER },
   { id: "pressLeft",   name: "Top knob · press + turn left",  fkey: "F18", hid: 0x6d },
   { id: "pressRight",  name: "Top knob · press + turn right", fkey: "F19", hid: 0x6e },
 ];
@@ -541,7 +543,7 @@ function changed() { scheduleSave(); renderAll(); }
 window.addEventListener("keydown", e => {
   if (/^F(1[3-9]|20)$/.test(e.key)) {   // only happens when Knob Agent isn't intercepting the knob
     const hyper = e.ctrlKey && e.altKey && e.shiftKey && e.metaKey;
-    const c = e.key === "F13" ? CONTROL[hyper ? "topLeft" : "bottomLeft"] : CONTROLS.find(x => x.fkey === e.key);
+    const c = e.key === "F13" ? CONTROL[hyper ? "topPress" : "bottomLeft"] : CONTROLS.find(x => x.fkey === e.key);
     if (c) { e.preventDefault(); if ($("configMode").checked) selectControl(c.id); flash(c.id); }
     return;
   }

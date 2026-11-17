@@ -42,15 +42,16 @@ let allowedOrigins: Set<String> = ["http://127.0.0.1:\(port)", "http://localhost
 
 // The knob's keys, as macOS virtual key codes. F14 and F15 are not used: macOS turns them into
 // screen-brightness keys before any app or event tap sees them. With only six usable spare
-// F-keys, the top knob's left turn sends F13 with all four modifiers held.
+// F-keys, the top knob's press sends F13 with all four modifiers held (a press, rather than a
+// turn, so the modifiers flicker once per press instead of on every click).
 let hyperFlags: CGEventFlags = [.maskControl, .maskAlternate, .maskShift, .maskCommand]
 
 func knobControl(keyCode: Int64, flags: CGEventFlags) -> String? {
     switch keyCode {
-    case 105: return flags.contains(hyperFlags) ? "topLeft" : "bottomLeft" // ⌃⌥⇧⌘F13 / F13
+    case 105: return flags.contains(hyperFlags) ? "topPress" : "bottomLeft" // ⌃⌥⇧⌘F13 / F13
     case 90: return "bottomRight" // F20
+    case 64: return "topLeft"     // F17
     case 106: return "topRight"   // F16
-    case 64: return "topPress"    // F17
     case 79: return "pressLeft"   // F18
     case 80: return "pressRight"  // F19
     default: return nil
@@ -447,6 +448,27 @@ final class Agent: NSObject, NSApplicationDelegate, NSMenuDelegate {
         if remaining == 0 { listening = false } // the page went away: leave configuration mode
     }
 
+    // MARK: Favicon
+
+    /// The menu-bar dial, drawn as the page's favicon: dark symbol on a light rounded square, so it
+    /// shows on light and dark tab bars. Drawn at run time from SF Symbols, not shipped as a file.
+    lazy var faviconPNG: Data? = {
+        let side: CGFloat = 64
+        let config = NSImage.SymbolConfiguration(pointSize: 40, weight: .medium)
+            .applying(NSImage.SymbolConfiguration(paletteColors: [NSColor(white: 0.13, alpha: 1)]))
+        guard let symbol = NSImage(systemSymbolName: "dial.medium", accessibilityDescription: nil)?
+            .withSymbolConfiguration(config) else { return nil }
+        let image = NSImage(size: NSSize(width: side, height: side), flipped: false) { rect in
+            NSColor(white: 0.96, alpha: 1).setFill()
+            NSBezierPath(roundedRect: rect, xRadius: 14, yRadius: 14).fill()
+            let s = symbol.size
+            symbol.draw(in: NSRect(x: (side - s.width) / 2, y: (side - s.height) / 2, width: s.width, height: s.height))
+            return true
+        }
+        guard let cg = image.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return nil }
+        return NSBitmapImageRep(cgImage: cg).representation(using: .png, properties: [:])
+    }()
+
     // MARK: Menu bar
 
     func setUpStatusItem() {
@@ -589,6 +611,10 @@ final class HTTPServer {
         if req.path.hasPrefix("/api/") {
             let (status, body, type) = agent.handleAPI(req)
             return reply(c, status, body, type)
+        }
+        if req.method == "GET" && req.path == "/favicon.png" {
+            guard let png = agent.faviconPNG else { return reply(c, 404, Data("Not found".utf8), "text/plain") }
+            return reply(c, 200, png, "image/png")
         }
         let files = ["/": ("index.html", "text/html; charset=utf-8"),
                      "/index.html": ("index.html", "text/html; charset=utf-8"),
