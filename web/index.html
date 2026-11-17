@@ -168,6 +168,7 @@
           <thead><tr><th>Part</th><th>Slot</th><th>Sends</th></tr></thead>
           <tbody id="slotRows"></tbody>
         </table>
+        <div class="row" style="margin-top:8px"><button class="link small" id="defaultSlots">Use default slots</button></div>
         <details style="margin-top:10px">
           <summary>Find slots again</summary>
           <p class="small muted">Gives every slot its own letter. Click the box, then turn or press each part and read which slot it used. Afterwards, save F13–F19 again.</p>
@@ -583,19 +584,18 @@ document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => {
 // ---------------------------------------------------------------------------
 // Device setup over WebHID (514c:8850; protocol from ch57x-keyboard-tool's k8850_4x4 driver)
 const VID = 0x514c, PID = 0x8850, REPORT_ID = 0x03;
+// The firmware has 25 slots (the driver it comes from calls 1–16 buttons and 17–25 knobs),
+// but this two-knob model keeps all seven parts in slots 2–8.
 const SLOT_LIST = [];
-for (let b = 0; b < 16; b++) SLOT_LIST.push({ id: b + 1, label: `Button ${b + 1}` });
-for (let n = 0; n < 3; n++) ["turn left", "press", "turn right"].forEach((a, i) => SLOT_LIST.push({ id: 17 + 3 * n + i, label: `Knob ${n + 1} ${a}` }));
+for (let id = 1; id <= 25; id++) SLOT_LIST.push({ id, label: `Slot ${id}` });
 const slotLabel = id => (SLOT_LIST.find(s => s.id === id) || { label: "—" }).label;
 const letterFor = id => String.fromCharCode(96 + id);
+const DEFAULT_SLOTS = { bottomLeft: 7, bottomRight: 8, topLeft: 2, topRight: 4, topPress: 3, pressLeft: 5, pressRight: 6 };
 
 const SLOT_KEY = "knob-slots-v2";
 let slots = JSON.parse(localStorage.getItem(SLOT_KEY) || "null");
 if (!slots) {
-  // Carry over the slots from the first version of this page, if it was used in this browser.
-  const old = JSON.parse(localStorage.getItem("knob-configurator-v1") || "null");
-  const guess = [17, 19, 20, 22, 21, 0, 0];
-  slots = Object.fromEntries(CONTROLS.map((c, i) => [c.id, old && old[i] ? old[i].slot || 0 : guess[i]]));
+  slots = { ...DEFAULT_SLOTS };
   localStorage.setItem(SLOT_KEY, JSON.stringify(slots));
 }
 
@@ -610,6 +610,12 @@ function renderSlots() {
   $("slotRows").querySelectorAll("select").forEach(s => s.onchange = () => { slots[s.dataset.slot] = +s.value; localStorage.setItem(SLOT_KEY, JSON.stringify(slots)); });
 }
 renderSlots();
+$("defaultSlots").onclick = () => {
+  slots = { ...DEFAULT_SLOTS };
+  localStorage.setItem(SLOT_KEY, JSON.stringify(slots));
+  renderSlots();
+  log("Slots set to the defaults. Save F13–F19 to the knob to apply them.");
+};
 
 function keyBindMessage(slotId, hidCode) { return [REPORT_ID, 0xfd, slotId, 1, 1, 0, 1, 0, 0, hidCode]; }
 const FINISH = [REPORT_ID, 0xfd, 0xfe, 0xff];

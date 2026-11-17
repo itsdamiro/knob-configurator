@@ -28,15 +28,15 @@ The maker's software runs only on Windows. This project replaces it on macOS.
 
 The knob has seven parts. Each one is set up to send a key that no normal keyboard has:
 
-| Part | Key |
-|---|---|
-| Bottom knob, turn left | F13 |
-| Bottom knob, turn right | F14 |
-| Top knob, turn left | F15 |
-| Top knob, turn right | F16 |
-| Top knob, press | F17 |
-| Top knob, press and turn left | F18 |
-| Top knob, press and turn right | F19 |
+| Part | Key | Slot in the knob's memory |
+|---|---|---|
+| Bottom knob, turn left | F13 | 7 |
+| Bottom knob, turn right | F14 | 8 |
+| Top knob, turn left | F15 | 2 |
+| Top knob, turn right | F16 | 4 |
+| Top knob, press | F17 | 3 |
+| Top knob, press and turn left | F18 | 5 |
+| Top knob, press and turn right | F19 | 6 |
 
 Knob Agent turns those keys into each app's shortcut. Because no other keyboard sends F13–F19, your normal keyboards are never touched.
 
@@ -62,7 +62,7 @@ The knob has to be told to send F13–F19. This is saved on the knob itself, so 
 
 ![The Device setup tab: connect the knob, save F13–F19, and the slot each part uses](docs/screenshot-device-setup.png)
 
-If a part lights up the wrong area, or nothing at all, open **Find slots again** on the same tab. It gives each of the knob's memory slots its own letter, so you can see which slot each part uses. Then set the slots in the table and save F13–F19 again.
+The page starts with the slots in the table above, as found on a real knob. If a part lights up the wrong area, or nothing at all, your knob may use other slots: open **Find slots again** on the same tab. It gives each of the knob's 25 memory slots its own letter, so you can see which slot each part uses. Then set the slots in the table and save F13–F19 again. **Use default slots** puts the table back to the values above.
 
 ## Using it
 
