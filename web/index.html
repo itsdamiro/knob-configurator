@@ -72,7 +72,7 @@
   .glyph { pointer-events: none; fill: #3a3b3f; font-weight: 600; text-anchor: middle; dominant-baseline: central; }
   .glyph.cap { font-size: 9px; letter-spacing: .12em; fill: #55575c; font-weight: 700; }
   .legend { width: 100%; margin-top: 10px; display: grid; gap: 2px; }
-  .legend .item { display: grid; grid-template-columns: 34px 1fr auto; gap: 10px; align-items: center; padding: 6px 10px; border-radius: 9px; cursor: pointer; }
+  .legend .item { display: grid; grid-template-columns: 76px 1fr auto; gap: 10px; align-items: center; padding: 6px 10px; border-radius: 9px; cursor: pointer; }
   .legend .item:hover { background: var(--soft); }
   .legend .item.sel { background: var(--accent-soft); }
   .legend .item.flash { animation: flashbg .7s ease-out; }
@@ -106,6 +106,7 @@
   <header>
     <h1>Knob Configurator</h1>
     <span id="agentPill" class="pill">Checking Knob Agent…</span>
+    <span id="batteryPill" class="pill" hidden></span>
     <span class="spacer"></span>
     <label class="switch" title="While on, turning or pressing the knob selects that part here instead of doing its action.">
       <input type="checkbox" id="configMode"><span class="track"></span><span>Configuration mode</span>
@@ -152,11 +153,11 @@
     <div class="stack">
       <div class="card">
         <h2>Set up the knob for app switching</h2>
-        <p class="muted">This saves F13–F19 on the knob, one key per part, which Knob Agent turns into each app's shortcut. You only need to do it once. Plug the knob in with the USB-C cable and use Google Chrome or Microsoft Edge; Safari and apps' built-in browsers can't talk to USB devices.</p>
+        <p class="muted">This saves a key for each part on the knob (F13, F16–F20, and ⌃⌥⇧⌘F13), which Knob Agent turns into each app's shortcut. You only need to do it once. Plug the knob in with the USB-C cable and use Google Chrome or Microsoft Edge; Safari and apps' built-in browsers can't talk to USB devices.</p>
         <div class="row">
           <button id="connect" class="primary">Connect device</button>
           <span id="devStatus" class="pill bad">Not connected</span>
-          <button id="writeF" disabled>Save F13–F19 to the knob</button>
+          <button id="writeF" disabled>Save keys to the knob</button>
         </div>
         <p class="small warn" id="hidSupport"></p>
       </div>
@@ -171,7 +172,7 @@
         <div class="row" style="margin-top:8px"><button class="link small" id="defaultSlots">Use default slots</button></div>
         <details style="margin-top:10px">
           <summary>Find slots again</summary>
-          <p class="small muted">Gives every slot its own letter. Click the box, then turn or press each part and read which slot it used. Afterwards, save F13–F19 again.</p>
+          <p class="small muted">Gives every slot its own letter. Click the box, then turn or press each part and read which slot it used. Afterwards, save the keys to the knob again.</p>
           <div class="row"><button id="discover" disabled>Write test letters</button></div>
           <p><input id="testbox" type="text" placeholder="Click here, then turn or press each part…" autocomplete="off" spellcheck="false"></p>
           <ul id="found" class="small"></ul>
@@ -192,11 +193,14 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 // ---------------------------------------------------------------------------
-// The seven parts of the knob, and the F-key each one sends.
+// The seven parts of the knob, and the key each one sends.
+// F14 and F15 aren't used: macOS turns them into screen-brightness keys before any app sees them.
+// Only six spare F-keys work, so the top knob's left turn sends F13 with all four modifiers.
+const HYPER = ["ctrl", "alt", "shift", "cmd"];
 const CONTROLS = [
   { id: "bottomLeft",  name: "Bottom knob · turn left",       fkey: "F13", hid: 0x68 },
-  { id: "bottomRight", name: "Bottom knob · turn right",      fkey: "F14", hid: 0x69 },
-  { id: "topLeft",     name: "Top knob · turn left",          fkey: "F15", hid: 0x6a },
+  { id: "bottomRight", name: "Bottom knob · turn right",      fkey: "F20", hid: 0x6f },
+  { id: "topLeft",     name: "Top knob · turn left",          fkey: "⌃⌥⇧⌘F13", hid: 0x68, mods: HYPER },
   { id: "topRight",    name: "Top knob · turn right",         fkey: "F16", hid: 0x6b },
   { id: "topPress",    name: "Top knob · press",              fkey: "F17", hid: 0x6c },
   { id: "pressLeft",   name: "Top knob · press + turn left",  fkey: "F18", hid: 0x6d },
@@ -262,7 +266,21 @@ async function load() {
   catch (e) { agentOK = false; }
   renderBanners();
   renderAll();
-  if (agentOK) connectEvents();
+  if (agentOK) { renderBattery(st.battery); connectEvents(); }
+}
+
+function renderBattery(level) {
+  const pill = $("batteryPill");
+  pill.hidden = false;
+  if (level === null || level === undefined) {
+    pill.textContent = "Knob battery: —";
+    pill.title = "Shown while the knob is connected over Bluetooth.";
+    pill.className = "pill";
+  } else {
+    pill.textContent = `Knob battery ${level}%`;
+    pill.title = level <= 20 ? "Low: charge it with the USB-C cable." : "";
+    pill.className = "pill " + (level <= 20 ? "bad" : "ok");
+  }
 }
 
 function renderBanners() {
@@ -521,9 +539,9 @@ function changed() { scheduleSave(); renderAll(); }
 
 // Keyboard: knob keys reaching the page, and recording a shortcut
 window.addEventListener("keydown", e => {
-  const fk = /^F(1[3-9])$/.exec(e.key);
-  if (fk) {   // only happens when Knob Agent isn't intercepting the knob
-    const c = CONTROLS.find(x => x.fkey === e.key);
+  if (/^F(1[3-9]|20)$/.test(e.key)) {   // only happens when Knob Agent isn't intercepting the knob
+    const hyper = e.ctrlKey && e.altKey && e.shiftKey && e.metaKey;
+    const c = e.key === "F13" ? CONTROL[hyper ? "topLeft" : "bottomLeft"] : CONTROLS.find(x => x.fkey === e.key);
     if (c) { e.preventDefault(); if ($("configMode").checked) selectControl(c.id); flash(c.id); }
     return;
   }
@@ -548,6 +566,9 @@ function connectEvents() {
     if (ev.type === "knob") {
       if ($("configMode").checked) selectControl(ev.control);
       flash(ev.control);
+    } else if (ev.type === "battery") {
+      st.battery = ev.level;
+      renderBattery(ev.level);
     } else if (ev.type === "app") {
       st.frontmost = ev.bundleId;
       st.recentApps = [{ bundleId: ev.bundleId, name: ev.name }, ...st.recentApps.filter(a => a.bundleId !== ev.bundleId)].slice(0, 12);
@@ -614,10 +635,16 @@ $("defaultSlots").onclick = () => {
   slots = { ...DEFAULT_SLOTS };
   localStorage.setItem(SLOT_KEY, JSON.stringify(slots));
   renderSlots();
-  log("Slots set to the defaults. Save F13–F19 to the knob to apply them.");
+  log("Slots set to the defaults. Save keys to the knob to apply them.");
 };
 
-function keyBindMessage(slotId, hidCode) { return [REPORT_ID, 0xfd, slotId, 1, 1, 0, 1, 0, 0, hidCode]; }
+// Keyboard binding (k8850_4x4 format): 03 fd <slot> <layer> 01 00 <count> then 00 00 <code> per key,
+// modifiers first (f1 Control, f2 Shift, f3 Option, f4 Command).
+const MOD_CODE = { ctrl: 0xf1, shift: 0xf2, alt: 0xf3, cmd: 0xf4 };
+function keyBindMessage(slotId, hidCode, mods = []) {
+  const seq = [...["ctrl", "shift", "alt", "cmd"].filter(m => mods.includes(m)).map(m => MOD_CODE[m]), hidCode];
+  return [REPORT_ID, 0xfd, slotId, 1, 1, 0, seq.length, ...seq.flatMap(code => [0, 0, code])];
+}
 const FINISH = [REPORT_ID, 0xfd, 0xfe, 0xff];
 async function send(msg) {
   const data = new Uint8Array(64);
@@ -625,7 +652,7 @@ async function send(msg) {
   await device.sendReport(msg[0], data);
   log("→ " + hex(msg));
 }
-async function bindKey(slotId, hidCode) { await send(keyBindMessage(slotId, hidCode)); await send(FINISH); }
+async function bindKey(slotId, hidCode, mods) { await send(keyBindMessage(slotId, hidCode, mods)); await send(FINISH); }
 
 function setDev(on) {
   $("devStatus").textContent = on ? "Connected" : "Not connected";
@@ -662,7 +689,7 @@ $("writeF").onclick = async () => {
   if (dup) return log(`Two parts use ${slotLabel(dup)}. Give each its own slot first.`);
   $("writeF").disabled = true;
   try {
-    for (const c of todo) await bindKey(slots[c.id], c.hid);
+    for (const c of todo) await bindKey(slots[c.id], c.hid, c.mods);
     const skipped = CONTROLS.filter(c => !slots[c.id]).map(c => c.name);
     log(`Done: saved ${todo.length} key(s) to the knob.` + (skipped.length ? ` No slot set for: ${skipped.join(", ")}.` : ""));
   } catch (e) { log("Write failed: " + e.message); }

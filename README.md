@@ -13,6 +13,7 @@ Turn the top knob and Photoshop changes the brush size, Figma zooms, Premiere st
   - **Apps**: choose what each part of the knob does in each app. Click a part of the drawing, or switch on *Configuration mode* and turn the real knob to select it.
   - **Device setup**: saves the knob's keys to the device itself over USB (Chrome or Edge).
 - **Ready-made profiles** for 20 apps (listed below), plus an *Everything else* profile for every other app. Add any other app in two clicks.
+- **Battery level** of the knob in the menu and on the page, with a warning when it runs low.
 
 ## The device
 
@@ -31,14 +32,16 @@ The knob has seven parts. Each one is set up to send a key that no normal keyboa
 | Part | Key | Slot in the knob's memory |
 |---|---|---|
 | Bottom knob, turn left | F13 | 7 |
-| Bottom knob, turn right | F14 | 8 |
-| Top knob, turn left | F15 | 2 |
+| Bottom knob, turn right | F20 | 8 |
+| Top knob, turn left | ⌃⌥⇧⌘F13 (Control-Option-Shift-Command-F13) | 2 |
 | Top knob, turn right | F16 | 4 |
 | Top knob, press | F17 | 3 |
 | Top knob, press and turn left | F18 | 5 |
 | Top knob, press and turn right | F19 | 6 |
 
-Knob Agent turns those keys into each app's shortcut. Because no other keyboard sends F13–F19, your normal keyboards are never touched.
+Knob Agent turns those keys into each app's shortcut. Because no normal keyboard sends them, your other keyboards are never touched.
+
+F14 and F15 are skipped on purpose: macOS turns them into screen-brightness keys before any app can see them. That leaves six spare F-keys for seven parts, so the top knob's left turn sends F13 with all four modifiers held.
 
 ## Install
 
@@ -52,17 +55,17 @@ Requires macOS 13 or later, on Apple Silicon or Intel.
 
 ### Set up the knob (once)
 
-The knob has to be told to send F13–F19. This is saved on the knob itself, so it keeps working over Bluetooth and on other computers.
+The knob has to be told to send the keys in the table above. This is saved on the knob itself, so it keeps working over Bluetooth and on other computers.
 
 1. Connect the knob with a USB-C cable.
 2. Open <http://127.0.0.1:8850> in **Google Chrome** or **Microsoft Edge**. Safari, and apps' built-in browsers, can't talk to USB devices.
 3. Go to **Device setup**, click **Connect device**, and pick "USB Composite Device".
-4. Click **Save F13–F19 to the knob**.
+4. Click **Save keys to the knob**.
 5. Check it: switch on **Configuration mode** and turn the knob. The matching part of the drawing lights up.
 
-![The Device setup tab: connect the knob, save F13–F19, and the slot each part uses](docs/screenshot-device-setup.png)
+![The Device setup tab: connect the knob, save its keys, and the slot each part uses](docs/screenshot-device-setup.png)
 
-The page starts with the slots in the table above, as found on a real knob. If a part lights up the wrong area, or nothing at all, your knob may use other slots: open **Find slots again** on the same tab. It gives each of the knob's 25 memory slots its own letter, so you can see which slot each part uses. Then set the slots in the table and save F13–F19 again. **Use default slots** puts the table back to the values above.
+The page starts with the slots in the table above, as found on a real knob. If a part lights up the wrong area, or nothing at all, your knob may use other slots: open **Find slots again** on the same tab. It gives each of the knob's 25 memory slots its own letter, so you can see which slot each part uses. Then set the slots in the table and save the keys again. **Use default slots** puts the table back to the values above.
 
 ## Using it
 
@@ -81,6 +84,16 @@ The page starts with the slots in the table above, as found on a real knob. If a
 - **Restore all suggested settings** puts every profile back to the defaults below.
 
 The menu-bar icon also has **Pause**, **Open at login** and **Quit**.
+
+### Battery
+
+While the knob is connected over Bluetooth, Knob Agent shows its battery level in the menu and in the page header. It checks every 5 minutes and whenever you open the menu. At 20% or less, the percentage also appears next to the dial icon in the menu bar, and macOS shows a notification at 20% and again at 10%. The first time, macOS asks whether Knob Agent may send notifications.
+
+The maker rates the battery at about a week of use with the lights off, and 3–4 hours with them on.
+
+### Lights
+
+Knob Configurator can't change the knob's lights yet. The light commands known from related pads (the 0x8840/0x8842 and 0x8890 models) were tested on this model and have no effect, so its light command is still unknown. Working it out needs a USB capture of the maker's Windows app changing the lights. If you can make one, please open an issue.
 
 ## Ready-made profiles
 
@@ -121,7 +134,9 @@ Apps are recognised by their bundle ID, matched from the start, so `com.adobe.Pr
 | The page shows "Knob Agent isn't running" | Open Knob Agent from Applications. |
 | The menu says port 8850 is busy | Something else is using that address. Quit it; Knob Agent keeps retrying and starts the page on its own. |
 | Connect device does nothing | Use Google Chrome or Microsoft Edge, not Safari or an app's built-in browser. |
-| Turning the knob changes the screen brightness | Knob Agent isn't running or isn't allowed: macOS treats F14 and F15 as brightness keys. |
+| Turning the knob changes the screen brightness | The knob still has the keys from version 1.0, which used F14 and F15; macOS treats those as brightness keys. Click **Save keys to the knob** on the Device setup tab. |
+| The battery shows "—" | The level is only reported over Bluetooth. Over the USB cable, or with the 2.4 GHz receiver, it isn't available. |
+| No low-battery notification | Allow notifications for Knob Agent in System Settings → Notifications. |
 | A shortcut does the wrong thing in an app | Check the app's own shortcut, then change it on the page. Keyboard layouts other than US can move keys such as `[`, `]`, `-` and `=`. |
 
 ## Build from source
@@ -145,14 +160,16 @@ Your settings are stored in `~/Library/Application Support/Knob Agent/config.jso
 
 ## How it works
 
-- **Catching the knob.** Knob Agent installs a macOS event tap. It removes F13–F19 key presses before any app sees them, and lets every other key through untouched.
+- **Catching the knob.** Knob Agent installs a macOS event tap. It removes the knob's key presses (F13, F16–F20 and ⌃⌥⇧⌘F13) before any app sees them, and lets every other key through untouched.
 - **Sending the action.** It looks up the app in front, finds its profile (or *Everything else*), and posts the shortcut, scroll or media key as new events.
+- **Battery.** It reads the level macOS gets over Bluetooth, from `system_profiler SPBluetoothDataType`. Over Bluetooth the knob presents itself as `MINI_KEYBOARD`, with vendor ID 0x05AC and product ID 0x022C.
 - **The page.** Knob Agent serves the page and a small JSON API on `127.0.0.1:8850`. The page saves changes there and gets live events, knob turns and app switches, over a server-sent event stream. That's how Configuration mode lights up the drawing.
 - **The device.** The page writes key settings to the knob over WebHID, through the knob's vendor-defined HID interface (usage page `0xFF00`, report ID 3, 64-byte reports). The message format comes from the open-source [ch57x-keyboard-tool](https://github.com/kriomant/ch57x-keyboard-tool), whose `k8850_4x4` driver covers this USB ID.
 
 ## Privacy and security
 
-- Knob Agent reacts only to F13–F19. It doesn't record, store or send any other keys.
+- Knob Agent reacts only to the knob's keys (F13, F16–F20 and ⌃⌥⇧⌘F13). It doesn't record, store or send any other keys.
+- From the Bluetooth device list it reads only the knob's battery level, and keeps nothing.
 - Nothing is sent over the internet. The page server listens on `127.0.0.1` only.
 - The server answers only requests addressed to `127.0.0.1:8850` or `localhost:8850`, which blocks DNS-rebinding tricks. It accepts changes only from its own page: the request must come from that origin and send JSON, so other websites can't change your settings.
 - The app is signed ad hoc, not with an Apple Developer ID, which is why macOS asks you to approve it on first launch.

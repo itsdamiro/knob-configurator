@@ -1,10 +1,11 @@
-// Knob Agent: a menu-bar app that turns the knob's F13–F19 keys into
+// Knob Agent: a menu-bar app that turns the knob's keys (F13, F16–F20) into
 // shortcuts for whichever app is in front, and serves the configurator page
 // on http://127.0.0.1:8850.
 
 import Cocoa
 import Network
 import ServiceManagement
+import UserNotifications
 
 // MARK: - Config
 
@@ -35,19 +36,26 @@ struct Config: Codable {
 // KNOB_AGENT_PORT and --no-prompt exist for testing a second copy beside the real one.
 let port: UInt16 = UInt16(ProcessInfo.processInfo.environment["KNOB_AGENT_PORT"] ?? "") ?? 8850
 let promptForAccess = !CommandLine.arguments.contains("--no-prompt")
+let catchKnob = !CommandLine.arguments.contains("--no-tap") // a test copy can serve the page without catching keys
 let allowedHosts: Set<String> = ["127.0.0.1:\(port)", "localhost:\(port)"]
 let allowedOrigins: Set<String> = ["http://127.0.0.1:\(port)", "http://localhost:\(port)"]
 
-// The knob's keys: macOS virtual key codes for F13–F19.
-let controlForKeyCode: [Int64: String] = [
-    105: "bottomLeft",  // F13
-    107: "bottomRight", // F14
-    113: "topLeft",     // F15
-    106: "topRight",    // F16
-    64: "topPress",     // F17
-    79: "pressLeft",    // F18
-    80: "pressRight",   // F19
-]
+// The knob's keys, as macOS virtual key codes. F14 and F15 are not used: macOS turns them into
+// screen-brightness keys before any app or event tap sees them. With only six usable spare
+// F-keys, the top knob's left turn sends F13 with all four modifiers held.
+let hyperFlags: CGEventFlags = [.maskControl, .maskAlternate, .maskShift, .maskCommand]
+
+func knobControl(keyCode: Int64, flags: CGEventFlags) -> String? {
+    switch keyCode {
+    case 105: return flags.contains(hyperFlags) ? "topLeft" : "bottomLeft" // ⌃⌥⇧⌘F13 / F13
+    case 90: return "bottomRight" // F20
+    case 106: return "topRight"   // F16
+    case 64: return "topPress"    // F17
+    case 79: return "pressLeft"   // F18
+    case 80: return "pressRight"  // F19
+    default: return nil
+    }
+}
 
 // macOS virtual key codes (US layout positions).
 let keyCodes: [String: CGKeyCode] = [
@@ -107,6 +115,94 @@ final class Agent: NSObject, NSApplicationDelegate, NSMenuDelegate {
             self, selector: #selector(appActivated(_:)),
             name: NSWorkspace.didActivateApplicationNotification, object: nil)
         if let front = NSWorkspace.shared.frontmostApplication { noteApp(front) }
+        startBatteryPolling()
+    }
+
+    // MARK: Battery
+
+    var battery: Int?
+    var batteryDeviceName: String?
+    var warnedAt = 101   // lowest threshold already notified; reset once the knob is charged
+
+    func startBatteryPolling() {
+        readBattery()
+        Timer.scheduledTimer(withTimeInterval: 300, repeats: true) { [weak self] _ in self?.readBattery() }
+    }
+
+    func readBattery() {
+        DispatchQueue.global(qos: .utility).async {
+            var found: (String, Int)?
+            let p = Process()
+            p.executableURL = URL(fileURLWithPath: "/usr/sbin/system_profiler")
+            p.arguments = ["SPBluetoothDataType", "-json"]
+            let pipe = Pipe()
+            p.standardOutput = pipe
+            p.standardError = FileHandle.nullDevice
+            if (try? p.run()) != nil {
+                let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                p.waitUntilExit()
+                found = Agent.knobBattery(in: data)
+            }
+            DispatchQueue.main.async { self.updateBattery(found) }
+        }
+    }
+
+    /// The knob's name and battery level, if it's connected over Bluetooth. Over Bluetooth it
+    /// presents itself with Apple's vendor ID 0x05AC and product ID 0x022C, named MINI_KEYBOARD.
+    static func knobBattery(in data: Data) -> (String, Int)? {
+        guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let controllers = root["SPBluetoothDataType"] as? [[String: Any]] else { return nil }
+        for ctl in controllers {
+            for entry in ctl["device_connected"] as? [[String: Any]] ?? [] {
+                for (name, value) in entry {
+                    guard let info = value as? [String: Any] else { continue }
+                    let ids = ((info["device_vendorID"] as? String)?.lowercased(), (info["device_productID"] as? String)?.lowercased())
+                    let isKnob = name.uppercased().contains("MINI_KEYBOARD") || (ids.0 == "0x05ac" && ids.1 == "0x022c")
+                    guard isKnob, let level = info["device_batteryLevelMain"] as? String,
+                          let pct = Int(level.trimmingCharacters(in: CharacterSet(charactersIn: "% "))) else { continue }
+                    return (name, pct)
+                }
+            }
+        }
+        return nil
+    }
+
+    func updateBattery(_ found: (String, Int)?) {
+        let changed = found?.1 != battery
+        battery = found?.1
+        batteryDeviceName = found?.0
+        updateStatusTitle()
+        if changed {
+            server?.broadcast(["type": "battery", "level": battery.map { $0 as Any } ?? NSNull(),
+                               "device": batteryDeviceName.map { $0 as Any } ?? NSNull()])
+        }
+        guard let level = battery else { return }
+        if level >= 30 { warnedAt = 101 }
+        if let threshold = [10, 20].first(where: { level <= $0 }), warnedAt > threshold {
+            warnedAt = threshold
+            notifyLowBattery(level)
+        }
+    }
+
+    func notifyLowBattery(_ level: Int) {
+        let center = UNUserNotificationCenter.current()
+        center.requestAuthorization(options: [.alert, .sound]) { granted, _ in
+            guard granted else { return }
+            let content = UNMutableNotificationContent()
+            content.title = "Knob battery low: \(level)%"
+            content.body = "Charge it with the USB-C cable. With the lights off, a charge lasts much longer."
+            center.add(UNNotificationRequest(identifier: "knob-battery", content: content, trigger: nil))
+        }
+    }
+
+    func updateStatusTitle() {
+        guard let button = statusItem?.button, button.image != nil else { return }
+        if let b = battery, b <= 20 {
+            button.title = " \(b)%"
+            button.imagePosition = .imageLeading
+        } else {
+            button.title = ""
+        }
     }
 
     // MARK: Config
@@ -175,6 +271,7 @@ final class Agent: NSObject, NSApplicationDelegate, NSMenuDelegate {
         case "scroll":
             guard let e = CGEvent(scrollWheelEvent2Source: eventSource, units: .line, wheelCount: 2,
                                   wheel1: Int32(a.dy ?? 0), wheel2: Int32(a.dx ?? 0), wheel3: 0) else { return }
+            e.flags = [] // never inherit the modifiers the knob holds for ⌃⌥⇧⌘F13
             e.setIntegerValueField(.eventSourceUserData, value: ourEventTag)
             e.post(tap: .cghidEventTap)
         case "media":
@@ -207,7 +304,7 @@ final class Agent: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func tryCreateTap() {
-        if tap != nil { return }
+        if tap != nil || !catchKnob { return }
         let mask = (1 << CGEventType.keyDown.rawValue) | (1 << CGEventType.keyUp.rawValue)
         tap = CGEvent.tapCreate(tap: .cgSessionEventTap, place: .headInsertEventTap, options: .defaultTap,
                                 eventsOfInterest: CGEventMask(mask), callback: tapCallback, userInfo: nil)
@@ -305,6 +402,8 @@ final class Agent: NSObject, NSApplicationDelegate, NSMenuDelegate {
             "paused": paused,
             "listening": listening,
             "loginItem": SMAppService.mainApp.status == .enabled,
+            "battery": battery.map { $0 as Any } ?? NSNull(),
+            "batteryDevice": batteryDeviceName.map { $0 as Any } ?? NSNull(),
         ]
     }
 
@@ -374,6 +473,8 @@ final class Agent: NSObject, NSApplicationDelegate, NSMenuDelegate {
         } else {
             info(paused ? "Paused" : "Knob profile: \(prof?.name ?? config.defaultProfile.name)")
         }
+        info(battery.map { "Knob battery: \($0)%" } ?? "Knob battery: shown when connected over Bluetooth")
+        readBattery() // refresh for next time the menu opens
         menu.addItem(.separator())
         menu.addItem(withTitle: "Open configurator…", action: #selector(openPage), keyEquivalent: ",").target = self
         let pause = menu.addItem(withTitle: "Pause", action: #selector(togglePause), keyEquivalent: "")
@@ -408,7 +509,7 @@ let tapCallback: CGEventTapCallBack = { _, type, event, _ in
     }
     guard type == .keyDown || type == .keyUp,
           event.getIntegerValueField(.eventSourceUserData) != ourEventTag,
-          let control = controlForKeyCode[event.getIntegerValueField(.keyboardEventKeycode)]
+          let control = knobControl(keyCode: event.getIntegerValueField(.keyboardEventKeycode), flags: event.flags)
     else { return Unmanaged.passUnretained(event) }
     if type == .keyDown && event.getIntegerValueField(.keyboardEventAutorepeat) == 0 {
         agent.handle(control: control)
